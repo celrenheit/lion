@@ -450,6 +450,10 @@ l.GetFunc("/hello/:name", Hello)
 l.Run()
 ```
 
+# License
+
+https://github.com/celrenheit/lion/blob/master/LICENSE
+
 # Todo
 
 [ ] Better static file handling
