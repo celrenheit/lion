@@ -13,7 +13,8 @@ func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello "+c.Value("name").(string))
+	name := lion.Param(c, "name")
+	fmt.Fprintf(w, "Hello "+name)
 }
 
 func main() {

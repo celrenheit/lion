@@ -1,13 +1,15 @@
 # Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Lion is a fast http(2) router for Go with support for middlewares for building modern scalable modular REST APIs.
+Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
+
+![Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello.gif)
 
 ## Features
 
 * **Zero allocations**: Lion generates zero garbage.
 * **Context-Aware**: Lion uses [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. Which [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
 * **Modular**: You can define your own modules to easily build a scalable architecture
-* **REST friendly**: You can define
+* **REST friendly**: You can define modules to groups http resources together.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -57,11 +59,12 @@ import (
 )
 
 func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Home\n")
+	fmt.Fprintf(w, "Home")
 }
 
 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello "+c.Value("name").(string))
+	name := lion.Param(c, "name")
+	fmt.Fprintf(w, "Hello "+name)
 }
 
 func main() {
@@ -72,7 +75,7 @@ func main() {
 }
 ```
 
-Try it your self by running the following command from the current directory:
+Try it yourself by running the following command from the current directory:
 
 ```shell
 $ go run examples/hello/hello.go
@@ -132,7 +135,7 @@ func (p OneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Req
 }
 ```
 
-Try it. Run:
+Try it yourself. Run:
 ```shell
 $ go run examples/modular-hello/modular-hello.go
 ```
