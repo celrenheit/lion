@@ -1,6 +1,6 @@
 # Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-🦁 Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
+Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
 
 ![Lion's Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello-speed2-md.gif)
 
