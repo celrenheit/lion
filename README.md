@@ -1,15 +1,15 @@
 # Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
+🦁 Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
 
 ![Lion's Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello-speed2-md.gif)
 
 ## Features
 
-* **Zero allocations**: Lion generates zero garbage.
-* **Context-Aware**: Lion uses [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. Which [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
+* **Context-Aware**: Lion uses the de-facto standard [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. It [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
 * **Modular**: You can define your own modules to easily build a scalable architecture
 * **REST friendly**: You can define modules to groups http resources together.
+* **Zero allocations**: Lion generates zero garbage.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -456,8 +456,8 @@ https://github.com/celrenheit/lion/blob/master/LICENSE
 
 # Todo
 
-[ ] Better static file handling
-[ ] Better docs
+* [ ] Better static file handling
+* [ ] More documentation
 
 # Credits
 
