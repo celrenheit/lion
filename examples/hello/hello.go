@@ -9,7 +9,7 @@ import (
 )
 
 func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Home\n")
+	fmt.Fprintf(w, "Home")
 }
 
 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
