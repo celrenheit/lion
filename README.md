@@ -19,9 +19,11 @@ Lion is a fast HTTP router for Go with support for middlewares for building mode
   - [Hello World](#hello-world)
   - [Getting started with modules and resources](#getting-started-with-modules-and-resources)
   - [Handlers](#handlers)
+    - [Using Handlers](#using-handlers)
     - [Using HandlerFuncs](#using-handlerfuncs)
-    - [Using native http.Handler using *lion.Wrap()*](#using-native-httphandler-using-lionwrap)
-    - [Using native http.Handler using *lion.WrapFunc()*](#using-native-httphandler-using-lionwrapfunc)
+    - [Using native http.Handler](#using-native-httphandler)
+      - [Using native http.Handler using *lion.Wrap()*](#using-native-httphandler-using-lionwrap)
+      - [Using native http.Handler using *lion.WrapFunc()*](#using-native-httphandler-using-lionwrapfunc)
   - [Middlewares](#middlewares)
   - [Resources](#resources)
   - [Examples](#examples)
@@ -32,6 +34,7 @@ Lion is a fast HTTP router for Go with support for middlewares for building mode
     - [Default middlewares](#default-middlewares)
 - [Custom Middlewares](#custom-middlewares)
     - [Custom Logger example](#custom-logger-example)
+- [License](#license)
 - [Todo](#todo)
 - [Credits](#credits)
 
@@ -145,11 +148,20 @@ Open your web browser to [http://localhost:3000/api/products](http://localhost:3
 ## Handlers
 
 Handlers should implement the Handler interface:
-### Handler interface
+
 ```go
 type Handler interface {
 	ServeHTTPC(context.Context, http.ResponseWriter, *http.Request)
 }
+```
+
+### Using Handlers
+
+```go
+l.Get("/get", get)
+l.Post("/post", post)
+l.Put("/put", put)
+l.Delete("/delete", delete)
 ```
 
 ### Using HandlerFuncs
@@ -157,16 +169,18 @@ type Handler interface {
 HandlerFuncs shoud have this function signature:
 
 ```go
-func Get(c context.Context, w http.ResponseWriter, r *http.Request)  {
-
+func handlerFunc(c context.Context, w http.ResponseWriter, r *http.Request)  {
+  fmt.Fprintf(w, "Hi!")
 }
 
-l.GetFunc("/somepath", Get)
+l.GetFunc("/get", handlerFunc)
+l.PostFunc("/post", handlerFunc)
+l.PutFunc("/put", handlerFunc)
+l.DeleteFunc("/delete", handlerFunc)
 ```
 
-### Using native http.Handler using *lion.Wrap()*
 
-*Note*: using native http handler you cannot access url params.
+### Using native http.Handler
 
 ```go
 type nativehandler struct {}
@@ -175,13 +189,25 @@ func (_ nativehandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+l.GetH("/somepath", nativehandler{})
+l.PostH("/somepath", nativehandler{})
+l.PutH("/somepath", nativehandler{})
+l.DeleteH("/somepath", nativehandler{})
+```
+
+#### Using native http.Handler using *lion.Wrap()*
+
+*Note*: using native http handler you cannot access url params.
+
+```go
+
 func main() {
 	l := lion.New()
 	l.Get("/somepath", lion.Wrap(nativehandler{}))
 }
 ```
 
-### Using native http.Handler using *lion.WrapFunc()*
+#### Using native http.Handler using *lion.WrapFunc()*
 
 
 ```go
