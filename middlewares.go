@@ -24,7 +24,8 @@ var cyan = color.New(color.FgCyan).SprintFunc()
 var hiBlue = color.New(color.FgHiBlue).SprintFunc()
 var lionColor = color.New(color.Italic, color.FgHiGreen).SprintFunc()
 
-// Classic creates a new router with some handy middlewares.
+// Classic creates a new router instance with default middlewares: Recovery, RealIP, Logger and Static.
+// The static middleware instance is initiated with a directory named "public" located relatively to the current working directory.
 func Classic() *Router {
 	return New(NewRecovery(), RealIP(), NewLogger(), NewStatic(http.Dir("public")))
 }
