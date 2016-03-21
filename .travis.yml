@@ -6,6 +6,7 @@ go:
   - 1.6
   - tip
 install:
+  - bash scripts/gogetcookie.sh
   - go get -t -v ./...
 script:
   - go test -v ./...
