@@ -70,6 +70,11 @@ func (r *Router) Get(pattern string, handler Handler) {
 	r.Handle("GET", pattern, handler)
 }
 
+// Head registers an http HEAD method receiver with the provided Handler
+func (r *Router) Head(pattern string, handler Handler) {
+	r.Handle("HEAD", pattern, handler)
+}
+
 // Post registers an http POST method receiver with the provided Handler
 func (r *Router) Post(pattern string, handler Handler) {
 	r.Handle("POST", pattern, handler)
@@ -80,19 +85,39 @@ func (r *Router) Put(pattern string, handler Handler) {
 	r.Handle("PUT", pattern, handler)
 }
 
-// Patch registers an http PATCH method receiver with the provided Handler
-func (r *Router) Patch(pattern string, handler Handler) {
-	r.Handle("PATCH", pattern, handler)
-}
-
 // Delete registers an http DELETE method receiver with the provided Handler
 func (r *Router) Delete(pattern string, handler Handler) {
 	r.Handle("DELETE", pattern, handler)
 }
 
+// Trace registers an http TRACE method receiver with the provided Handler
+func (r *Router) Trace(pattern string, handler Handler) {
+	r.Handle("TRACE", pattern, handler)
+}
+
+// Options registers an http OPTIONS method receiver with the provided Handler
+func (r *Router) Options(pattern string, handler Handler) {
+	r.Handle("OPTIONS", pattern, handler)
+}
+
+// Connect registers an http CONNECT method receiver with the provided Handler
+func (r *Router) Connect(pattern string, handler Handler) {
+	r.Handle("CONNECT", pattern, handler)
+}
+
+// Patch registers an http PATCH method receiver with the provided Handler
+func (r *Router) Patch(pattern string, handler Handler) {
+	r.Handle("PATCH", pattern, handler)
+}
+
 // GetFunc wraps a HandlerFunc as a Handler and registers it to the router
 func (r *Router) GetFunc(pattern string, fn HandlerFunc) {
 	r.Get(pattern, HandlerFunc(fn))
+}
+
+// HeadFunc wraps a HandlerFunc as a Handler and registers it to the router
+func (r *Router) HeadFunc(pattern string, fn HandlerFunc) {
+	r.Head(pattern, HandlerFunc(fn))
 }
 
 // PostFunc wraps a HandlerFunc as a Handler and registers it to the router
@@ -105,14 +130,29 @@ func (r *Router) PutFunc(pattern string, fn HandlerFunc) {
 	r.Put(pattern, HandlerFunc(fn))
 }
 
-// PatchFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PatchFunc(pattern string, fn HandlerFunc) {
-	r.Patch(pattern, HandlerFunc(fn))
-}
-
 // DeleteFunc wraps a HandlerFunc as a Handler and registers it to the router
 func (r *Router) DeleteFunc(pattern string, fn HandlerFunc) {
 	r.Delete(pattern, HandlerFunc(fn))
+}
+
+// TraceFunc wraps a HandlerFunc as a Handler and registers it to the router
+func (r *Router) TraceFunc(pattern string, fn HandlerFunc) {
+	r.Trace(pattern, HandlerFunc(fn))
+}
+
+// OptionsFunc wraps a HandlerFunc as a Handler and registers it to the router
+func (r *Router) OptionsFunc(pattern string, fn HandlerFunc) {
+	r.Options(pattern, HandlerFunc(fn))
+}
+
+// ConnectFunc wraps a HandlerFunc as a Handler and registers it to the router
+func (r *Router) ConnectFunc(pattern string, fn HandlerFunc) {
+	r.Connect(pattern, HandlerFunc(fn))
+}
+
+// PatchFunc wraps a HandlerFunc as a Handler and registers it to the router
+func (r *Router) PatchFunc(pattern string, fn HandlerFunc) {
+	r.Patch(pattern, HandlerFunc(fn))
 }
 
 // Use registers middlewares to be used
@@ -264,6 +304,11 @@ func (r *Router) GetH(pattern string, handler http.Handler) {
 	r.Get(pattern, Wrap(handler))
 }
 
+// HeadH wraps a http.Handler
+func (r *Router) HeadH(pattern string, handler http.Handler) {
+	r.Head(pattern, Wrap(handler))
+}
+
 // PostH wraps a http.Handler
 func (r *Router) PostH(pattern string, handler http.Handler) {
 	r.Post(pattern, Wrap(handler))
@@ -277,6 +322,26 @@ func (r *Router) PutH(pattern string, handler http.Handler) {
 // DeleteH wraps a http.Handler
 func (r *Router) DeleteH(pattern string, handler http.Handler) {
 	r.Delete(pattern, Wrap(handler))
+}
+
+// TraceH wraps a http.Handler
+func (r *Router) TraceH(pattern string, handler http.Handler) {
+	r.Trace(pattern, Wrap(handler))
+}
+
+// OptionsH wraps a http.Handler
+func (r *Router) OptionsH(pattern string, handler http.Handler) {
+	r.Options(pattern, Wrap(handler))
+}
+
+// ConnectH wraps a http.Handler
+func (r *Router) ConnectH(pattern string, handler http.Handler) {
+	r.Connect(pattern, Wrap(handler))
+}
+
+// PatchH wraps a http.Handler
+func (r *Router) PatchH(pattern string, handler http.Handler) {
+	r.Patch(pattern, Wrap(handler))
 }
 
 // Run calls http.ListenAndServe for the current router.
