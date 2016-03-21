@@ -1,6 +1,6 @@
 # Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Lion is a fast HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
+Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
 
 ![Lion's Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello-speed2-sm.min.gif)
 
@@ -9,7 +9,7 @@ Lion is a fast HTTP router for Go with support for middlewares for building mode
 * **Context-Aware**: Lion uses the de-facto standard [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. It [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
 * **Modular**: You can define your own modules to easily build a scalable architecture
 * **REST friendly**: You can define modules to groups http resources together.
-* **Zero allocations**: Lion generates zero garbage.
+* **Zero allocations**: Lion generates zero garbage[*](#benchmarks).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -34,6 +34,7 @@ Lion is a fast HTTP router for Go with support for middlewares for building mode
     - [Default middlewares](#default-middlewares)
 - [Custom Middlewares](#custom-middlewares)
     - [Custom Logger example](#custom-logger-example)
+- [Benchmarks](#benchmarks)
 - [License](#license)
 - [Todo](#todo)
 - [Credits](#credits)
@@ -476,6 +477,52 @@ l.GetFunc("/hello/:name", Hello)
 l.Run()
 ```
 
+# Benchmarks
+
+Without [path.Clean](https://golang.org/pkg/path/#Clean)
+
+```
+BenchmarkLion_Param       	10000000	       164 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Param5      	 5000000	       372 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Param20     	 1000000	      1080 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParamWrite  	10000000	       180 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubStatic	10000000	       160 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubParam 	 5000000	       359 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubAll   	   30000	     62888 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusStatic 	20000000	       104 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusParam  	10000000	       182 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlus2Params	 5000000	       286 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusAll    	  500000	      3227 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseStatic 	10000000	       123 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseParam  	10000000	       145 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Parse2Params	10000000	       212 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseAll    	  300000	      5242 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_StaticAll   	   50000	     37998 ns/op	       0 B/op	       0 allocs/op
+```
+
+With [path.Clean](https://golang.org/pkg/path/#Clean)
+
+```
+BenchmarkLion_Param       	10000000	       227 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Param5      	 3000000	       427 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Param20     	 1000000	      1321 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParamWrite  	 5000000	       256 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubStatic	10000000	       214 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubParam 	 3000000	       445 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GithubAll   	   20000	     88664 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusStatic 	10000000	       122 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusParam  	 5000000	       381 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlus2Params	 5000000	       409 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_GPlusAll    	  500000	      3952 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseStatic 	10000000	       146 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseParam  	10000000	       187 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_Parse2Params	 5000000	       314 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_ParseAll    	  200000	      7857 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLion_StaticAll   	   30000	     56170 ns/op	      96 B/op	       8 allocs/op
+```
+
+A more in depth benchmark with a comparison with other frameworks is coming soon.
+
 # License
 
 https://github.com/celrenheit/lion/blob/master/LICENSE
@@ -491,4 +538,6 @@ https://github.com/celrenheit/lion/blob/master/LICENSE
 	* Static and Recovery middlewares are taken from Negroni
 * @zenazn for https://github.com/zenazn/goji/
 	* RealIP middleware is taken from goji
-* @armon for https://github.com/armon/go-radix
+* @pkieltyka for https://github.com/pressly/chi and @armon for https://github.com/armon/go-radix
+  * Radix tree matcher implementation is inspired by both of these packages
+* https://github.com/gin-gonic/gin for ResponseWriter and Logger inspiration
