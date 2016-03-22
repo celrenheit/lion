@@ -11,8 +11,7 @@ import (
 
 // Router is responsible for registering handlers and middlewares
 type Router struct {
-	tree *tree
-	rm   RegisterMatcher
+	rm RegisterMatcher
 
 	router *Router
 

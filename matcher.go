@@ -17,12 +17,12 @@ type RegisterMatcher interface {
 var _ RegisterMatcher = (*radixMatcher)(nil)
 
 type radixMatcher struct {
-	trees map[string]*node
+	root *node
 }
 
 func newRadixMatcher() *radixMatcher {
 	r := &radixMatcher{
-		trees: make(map[string]*node),
+		root: &node{},
 	}
 	return r
 }
@@ -32,25 +32,17 @@ func (d *radixMatcher) Register(method, pattern string, handler Handler) {
 		panic("path must begin with '/' in path '" + pattern + "'")
 	}
 
-	if d.trees == nil {
-		d.trees = make(map[string]*node)
+	if d.root == nil {
+		d.root = &node{}
 	}
 
-	root := d.trees[method]
-	if root == nil {
-		root = &node{}
-		d.trees[method] = root
-	}
-	root.addRoute(pattern, handler)
+	d.root.addRoute(method, pattern, handler)
 }
 
 func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
-	if root, ok := d.trees[r.Method]; ok {
-		n, c := root.findNode(c, cleanPath(r.URL.Path))
-		if n == nil {
-			return c, nil
-		}
-		return c, n.handler
+	n, c := d.root.findNode(c, r.Method, cleanPath(r.URL.Path))
+	if n == nil {
+		return c, nil
 	}
-	return c, nil
+	return c, n.getHandler(r.Method)
 }

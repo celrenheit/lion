@@ -5,6 +5,20 @@ import (
 	"strings"
 )
 
+var (
+	GET     = "GET"
+	HEAD    = "HEAD"
+	POST    = "POST"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	TRACE   = "TRACE"
+	OPTIONS = "OPTIONS"
+	CONNECT = "CONNECT"
+	PATCH   = "PATCH"
+)
+
+var allowedHttpMethods = []string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
+
 type nodeType uint8
 
 const (
@@ -14,43 +28,96 @@ const (
 	wildcard                 // *
 )
 
-type tree struct {
-	subtrees map[string]*node
-}
-
-func newTree() *tree {
-	return &tree{
-		subtrees: make(map[string]*node),
-	}
-}
-
-func (t *tree) addRoute(method, pattern string, handler Handler) {
-	root := t.subtrees[method]
-	if root == nil {
-		root = &node{}
-		t.subtrees[method] = root
-	}
-	root.addRoute(pattern, handler)
-}
-
 type node struct {
 	nodeType    nodeType
 	pattern     string
-	handler     Handler
 	children    typesToNodes
 	label       byte
 	endinglabel byte
+	handlers    *methodsHandlers
+}
+
+type methodsHandlers struct {
+	get     Handler
+	head    Handler
+	post    Handler
+	put     Handler
+	delete  Handler
+	trace   Handler
+	options Handler
+	connect Handler
+	patch   Handler
 }
 
 func (n *node) isLeaf() bool {
-	return n.handler != nil
+	for _, m := range allowedHttpMethods {
+		if n.getHandler(m) != nil {
+			return true
+		}
+	}
+	return false
 }
 
-func (n *node) addRoute(pattern string, handler Handler) {
+func (n *node) isLeafForMethod(method string) bool {
+	return n.getHandler(method) != nil
+}
+
+func (n *node) addHandler(method string, handler Handler) {
+	if n.handlers == nil {
+		n.handlers = &methodsHandlers{}
+	}
+	switch method {
+	case GET:
+		n.handlers.get = handler
+	case HEAD:
+		n.handlers.head = handler
+	case POST:
+		n.handlers.post = handler
+	case PUT:
+		n.handlers.put = handler
+	case DELETE:
+		n.handlers.delete = handler
+	case TRACE:
+		n.handlers.trace = handler
+	case OPTIONS:
+		n.handlers.options = handler
+	case CONNECT:
+		n.handlers.connect = handler
+	case PATCH:
+		n.handlers.patch = handler
+	}
+}
+
+func (n *node) getHandler(method string) Handler {
+	switch method {
+	case GET:
+		return n.handlers.get
+	case HEAD:
+		return n.handlers.head
+	case POST:
+		return n.handlers.post
+	case PUT:
+		return n.handlers.put
+	case DELETE:
+		return n.handlers.delete
+	case TRACE:
+		return n.handlers.trace
+	case OPTIONS:
+		return n.handlers.options
+	case CONNECT:
+		return n.handlers.connect
+	case PATCH:
+		return n.handlers.patch
+	default:
+		return nil
+	}
+}
+
+func (n *node) addRoute(method, pattern string, handler Handler) {
 	search := pattern
 
 	if len(search) == 0 {
-		n.handler = handler
+		n.addHandler(method, handler)
 		return
 	}
 	child := n.getEdge(search[0])
@@ -58,9 +125,9 @@ func (n *node) addRoute(pattern string, handler Handler) {
 		child = &node{
 			label:   search[0],
 			pattern: search,
-			handler: handler,
 		}
-		n.addChild(child)
+		child.addHandler(method, handler)
+		n.addChild(method, child)
 		return
 	}
 
@@ -72,7 +139,7 @@ func (n *node) addRoute(pattern string, handler Handler) {
 
 		search = search[pos:]
 
-		child.addRoute(search, handler)
+		child.addRoute(method, search, handler)
 		return
 	}
 
@@ -81,7 +148,7 @@ func (n *node) addRoute(pattern string, handler Handler) {
 
 		search = search[commonPrefix:]
 
-		child.addRoute(search, handler)
+		child.addRoute(method, search, handler)
 		return
 	}
 
@@ -93,21 +160,21 @@ func (n *node) addRoute(pattern string, handler Handler) {
 	n.replaceChild(search[0], subchild)
 	c2 := child
 	c2.label = child.pattern[commonPrefix]
-	subchild.addChild(c2)
+	subchild.addChild(method, c2)
 	child.pattern = child.pattern[commonPrefix:]
 
 	search = search[commonPrefix:]
 	if len(search) == 0 {
-		subchild.handler = handler
+		subchild.addHandler(method, handler)
 		return
 	}
-
-	subchild.addChild(&node{
+	tmp := &node{
 		label:    search[0],
 		nodeType: static,
 		pattern:  search,
-		handler:  handler,
-	})
+	}
+	tmp.addHandler(method, handler)
+	subchild.addChild(method, tmp)
 	return
 }
 
@@ -135,7 +202,7 @@ func (n *node) replaceChild(label byte, child *node) {
 	panic("cannot replace child")
 }
 
-func (n *node) findNode(c *Context, path string) (*node, *Context) {
+func (n *node) findNode(c *Context, method, path string) (*node, *Context) {
 	root := n
 	search := path
 
@@ -193,7 +260,7 @@ LOOP:
 				continue
 			}
 
-			if len(xsearch) == 0 && xn.isLeaf() {
+			if len(xsearch) == 0 && xn.isLeafForMethod(method) {
 				return xn, c
 			}
 
@@ -245,9 +312,8 @@ func (n *node) longestPrefix(pattern string) int {
 	return longestPrefix(n.pattern, pattern)
 }
 
-func (n *node) addChild(child *node) {
+func (n *node) addChild(method string, child *node) {
 	search := child.pattern
-
 	pos := stringsIndexAny(search, ":*")
 
 	ndtype := static
@@ -263,7 +329,7 @@ func (n *node) addChild(child *node) {
 	switch {
 	case pos == 0: // Pattern starts with wildcard
 		l := len(search)
-		handler := child.handler
+		handler := child.getHandler(method)
 		child.nodeType = ndtype
 		if ndtype == wildcard {
 			pos = -1
@@ -279,33 +345,32 @@ func (n *node) addChild(child *node) {
 		child.pattern = search[:pos]
 
 		if pos != l {
-			child.handler = nil
-
+			child.addHandler(method, nil)
 			search = search[pos:]
 			subchild := &node{
 				label:    search[0],
 				pattern:  search,
 				nodeType: static,
-				handler:  handler,
 			}
-			child.addChild(subchild)
+			subchild.addHandler(method, handler)
+			child.addChild(method, subchild)
 		}
 
 	case pos > 0: // Pattern has a wildcard parameter
-		handler := child.handler
+		handler := child.getHandler(method)
 
 		child.nodeType = static
 		child.pattern = search[:pos]
-		child.handler = nil
+		child.addHandler(method, nil)
 
 		search = search[pos:]
 		subchild := &node{
 			label:    search[0],
 			nodeType: ndtype,
 			pattern:  search,
-			handler:  handler,
 		}
-		child.addChild(subchild)
+		subchild.addHandler(method, handler)
+		child.addChild(method, subchild)
 	default: // all static
 		child.nodeType = ndtype
 	}
