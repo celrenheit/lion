@@ -206,6 +206,11 @@ func (n *node) findNode(c *Context, method, path string) (*node, *Context) {
 	root := n
 	search := path
 
+	// Stores the previous node, search path and the previous i
+	prev := n
+	prevsearch := ""
+	previ := 0
+
 LOOP:
 	for {
 
@@ -218,6 +223,13 @@ LOOP:
 			t := nodeType(i)
 
 			if len(root.children[i]) == 0 {
+				// If the searched path does not start with the current pattern and there are no children greather than the current nodeType.
+				// Then go back to the previous(parent) node and search for childs of the next nodeType.
+				if !strings.HasPrefix(search, root.pattern) && root.children.isEmptyStartingWith(t+1) {
+					root = prev
+					search = prevsearch
+					i = previ
+				}
 				continue
 			}
 
@@ -264,8 +276,13 @@ LOOP:
 				return xn, c
 			}
 
+			prev = root
 			root = xn
+
+			prevsearch = search
 			search = xsearch
+
+			previ = i
 			continue LOOP // Search for next node (xn)
 		}
 
@@ -387,3 +404,16 @@ func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Sort()              { sort.Sort(ns) }
 
 type typesToNodes [wildcard + 1]nodes
+
+func (tps typesToNodes) isEmpty() bool {
+	return tps.isEmptyStartingWith(static)
+}
+
+func (tps typesToNodes) isEmptyStartingWith(t nodeType) bool {
+	for i := t; i < wildcard+1; i++ {
+		if len(tps[i]) > 0 {
+			return false
+		}
+	}
+	return true
+}
