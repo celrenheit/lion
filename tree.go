@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var (
+const (
 	GET     = "GET"
 	HEAD    = "HEAD"
 	POST    = "POST"
@@ -17,7 +17,7 @@ var (
 	PATCH   = "PATCH"
 )
 
-var allowedHttpMethods = []string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
+var allowedHttpMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
 
 type nodeType uint8
 
