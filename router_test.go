@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"golang.org/x/net/context"
 )
 
@@ -276,8 +274,7 @@ func TestRouteMatching(t *testing.T) {
 
 		// Compare params
 		for k, v := range test.ExpectedParams {
-			assert.NotNil(t, c.Value(k))
-			actual := c.Value(k).(string)
+			actual := Param(c, k)
 			if actual != v {
 				t.Errorf("Expected key %s to equal %s but got %s for url: %s", cyan(k), green(v), red(actual), test.Input)
 			}
