@@ -1,7 +1,6 @@
 package lion
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"sync"
@@ -294,7 +293,6 @@ func (r *Router) NotFoundHandler(handler Handler) {
 func (r *Router) ServeFiles(path string, root http.FileSystem) {
 	fileServer := http.FileServer(root)
 	r.Get(path, HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-		fmt.Println("rurl", r.URL.Path)
 		fileServer.ServeHTTP(w, r)
 	}))
 }
