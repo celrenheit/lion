@@ -23,10 +23,20 @@ func TestRouteMatching(t *testing.T) {
 	cartsHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	getCartHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	helloContactHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactNamedHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactNamedDeeperHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactNamedSubParamHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	helloContactByPersonHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactByPersonStaticHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactByPersonToPersonHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	helloContactByPersonAndPathHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	extensionHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	usernameHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 	wildcardHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+
+	userProfileHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	userSuperHandler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	userMainWildcard := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
 
 	routes := []struct {
 		Method  string
@@ -70,8 +80,38 @@ func TestRouteMatching(t *testing.T) {
 		},
 		{
 			Method:  "GET",
+			Pattern: "/hello/contact/named",
+			Handler: helloContactNamedHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/hello/contact/named/deeper",
+			Handler: helloContactNamedDeeperHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/hello/contact/named/:param",
+			Handler: helloContactNamedSubParamHandler,
+		},
+		{
+			Method:  "GET",
 			Pattern: "/hello/contact/:dest",
 			Handler: helloContactByPersonHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/hello/contact/:dest/static",
+			Handler: helloContactByPersonStaticHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/hello/contact/:dest/:from",
+			Handler: helloContactByPersonToPersonHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/hello/contact/:dest/*path",
+			Handler: helloContactByPersonAndPathHandler,
 		},
 		{
 			Method:  "GET",
@@ -87,6 +127,21 @@ func TestRouteMatching(t *testing.T) {
 			Method:  "GET",
 			Pattern: "/*",
 			Handler: wildcardHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/users/:userID/profile",
+			Handler: userProfileHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/users/super/*",
+			Handler: userSuperHandler,
+		},
+		{
+			Method:  "GET",
+			Pattern: "/users/*",
+			Handler: userMainWildcard,
 		},
 	}
 
@@ -136,9 +191,44 @@ func TestRouteMatching(t *testing.T) {
 			ExpectedParams:  emptyParams,
 		},
 		{
+			Input:           "/hello/contact/named",
+			ExpectedHandler: helloContactNamedHandler,
+			ExpectedParams:  emptyParams,
+		},
+		{
+			Input:           "/hello/contact/named/deeper",
+			ExpectedHandler: helloContactNamedDeeperHandler,
+			ExpectedParams:  emptyParams,
+		},
+		{
+			Input:           "/hello/contact/named/batman",
+			ExpectedHandler: helloContactNamedSubParamHandler,
+			ExpectedParams:  map[string]string{"param": "batman"},
+		},
+		{
+			Input:           "/hello/contact/nameddd",
+			ExpectedHandler: helloContactByPersonHandler,
+			ExpectedParams:  map[string]string{"dest": "nameddd"},
+		},
+		{
 			Input:           "/hello/contact/batman",
 			ExpectedHandler: helloContactByPersonHandler,
 			ExpectedParams:  map[string]string{"dest": "batman"},
+		},
+		{
+			Input:           "/hello/contact/batman/static",
+			ExpectedHandler: helloContactByPersonStaticHandler,
+			ExpectedParams:  map[string]string{"dest": "batman"},
+		},
+		{
+			Input:           "/hello/contact/batman/robin",
+			ExpectedHandler: helloContactByPersonToPersonHandler,
+			ExpectedParams:  map[string]string{"dest": "batman", "from": "robin"},
+		},
+		{
+			Input:           "/hello/contact/batman/folder/subfolder/file",
+			ExpectedHandler: helloContactByPersonAndPathHandler,
+			ExpectedParams:  map[string]string{"dest": "batman", "*": "folder/subfolder/file"},
 		},
 		{
 			Input:           "/extension/batman.jpg",
@@ -154,6 +244,21 @@ func TestRouteMatching(t *testing.T) {
 			Input:           "/unkownpath/subfolder",
 			ExpectedHandler: wildcardHandler,
 			ExpectedParams:  map[string]string{"*": "unkownpath/subfolder"},
+		},
+		{
+			Input:           "/users/123/profile",
+			ExpectedHandler: userProfileHandler,
+			ExpectedParams:  map[string]string{"userID": "123"},
+		},
+		{
+			Input:           "/users/super/123/okay/yes",
+			ExpectedHandler: userSuperHandler,
+			ExpectedParams:  map[string]string{"*": "123/okay/yes"},
+		},
+		{
+			Input:           "/users/123/okay/yes",
+			ExpectedHandler: userMainWildcard,
+			ExpectedParams:  map[string]string{"*": "123/okay/yes"},
 		},
 	}
 
@@ -174,7 +279,7 @@ func TestRouteMatching(t *testing.T) {
 			assert.NotNil(t, c.Value(k))
 			actual := c.Value(k).(string)
 			if actual != v {
-				t.Errorf("Expected %s but got %s for url: %s", green(v), red(actual), test.Input)
+				t.Errorf("Expected key %s to equal %s but got %s for url: %s", cyan(k), green(v), red(actual), test.Input)
 			}
 		}
 
