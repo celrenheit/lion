@@ -213,8 +213,7 @@ func (n *node) findNode(c *Context, method, path string) (*node, *Context) {
 
 LOOP:
 	for {
-
-		if len(search) == 0 {
+		if len(search) == 0 && root.children.isEmpty() {
 			break
 		}
 
@@ -238,7 +237,7 @@ LOOP:
 				label = search[0]
 			}
 
-			xn := root.findEdge(nodeType(t), label)
+			xn := root.findEdge(t, label)
 			if xn == nil {
 				continue
 			}
@@ -260,7 +259,15 @@ LOOP:
 				}
 
 				if xn.nodeType == wildcard {
-					c.addParam("*", xsearch)
+					key := "*"
+					// If wildcard parameter has a name use it as a key.
+					// For example:
+					// 		/*path  will be stored as 			"path" = "value"
+					// 		/*  		will be stored as 			"*" = "value"
+					if len(xn.pattern) > 1 {
+						key = xn.pattern[1:]
+					}
+					c.addParam(key, xsearch)
 				} else {
 					c.addParam(xn.pattern[1:], xsearch[:p])
 				}

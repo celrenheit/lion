@@ -34,6 +34,7 @@ func TestRouteMatching(t *testing.T) {
 	userProfileHandler := fakeHandler()
 	userSuperHandler := fakeHandler()
 	userMainWildcard := fakeHandler()
+	emptywildcardHandler := fakeHandler()
 
 	routes := []struct {
 		Method  string
@@ -60,6 +61,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/users/:userID/profile", Handler: userProfileHandler},
 		{Pattern: "/users/super/*", Handler: userSuperHandler},
 		{Pattern: "/users/*", Handler: userMainWildcard},
+		{Pattern: "/empty/*", Handler: emptywildcardHandler},
 	}
 
 	tests := []struct {
@@ -83,13 +85,14 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: M{"dest": "batman"}},
 		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: M{"dest": "batman"}},
 		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: M{"dest": "batman", "from": "robin"}},
-		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "*": "folder/subfolder/file"}},
+		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "path": "folder/subfolder/file"}},
 		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: M{"file": "batman", "ext": "jpg"}},
 		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: M{"username": "celrenheit"}},
 		{Input: "/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
 		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: M{"userID": "123"}},
 		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: M{"*": "123/okay/yes"}},
 		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: M{"*": "123/okay/yes"}},
+		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: M{"*": ""}},
 	}
 
 	mux := New()
