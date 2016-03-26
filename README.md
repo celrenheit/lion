@@ -521,7 +521,7 @@ BenchmarkLion_ParseAll    	  200000	      7857 ns/op	       0 B/op	       0 allo
 BenchmarkLion_StaticAll   	   30000	     56170 ns/op	      96 B/op	       8 allocs/op
 ```
 
-A more in depth benchmark with a comparison with other frameworks is coming soon.
+For more in depth benchmark with a comparison with other frameworks you can click [here](https://github.com/goc0der/go-http-routing-benchmark)
 
 # License
 
