@@ -1,3 +1,45 @@
+// Lion is a fast HTTP router for building modern scalable modular REST APIs in Go.
+//
+// Install and update:
+//    go get -u github.com/celrenheit/lion
+//
+// Getting started:
+//
+// Start by importing "github.com/celrenheit/lion" into your project.
+// Then you need to create a new instance of the router using lion.New() for a blank router or lion.Classic() for a router with default middlewares included.
+//
+// Here is a simple hello world example:
+//
+//		 package main
+//
+//		 import (
+//		 	"fmt"
+//		 	"net/http"
+//
+//		 	"github.com/celrenheit/lion"
+//		 	"golang.org/x/net/context"
+//		 )
+//
+//		 func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 	fmt.Fprintf(w, "Home")
+//		 }
+//
+//		 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 	name := lion.Param(c, "name")
+//		 	fmt.Fprintf(w, "Hello "+name)
+//		 }
+//
+//		 func main() {
+//		 	l := lion.Classic()
+//		 	l.GetFunc("/", Home)
+//		 	l.GetFunc("/hello/:name", Hello)
+//		 	l.Run()
+//		 }
+//
+// You can open your web browser to http://localhost:3000/hello/world and you should see "Hello world".
+// If it finds a PORT environnement variable it will use that. Otherwise, it will use run the server at localhost:3000.
+// If you wish to provide a specific port you can run it using: l.Run(":8080")
+//
 package lion
 
 import (

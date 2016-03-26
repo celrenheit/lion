@@ -9,6 +9,7 @@ import (
 // Resource defines the minimum required methods
 type Resource interface{}
 
+// ResourceUses is an interface with the Uses() method which can be used to define global middlewares for the resource.
 type ResourceUses interface {
 	Uses() Middlewares
 }

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Router is responsible for registering handlers and middlewares
+// Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
 	rm RegisterMatcher
 
@@ -373,16 +373,20 @@ func (r *Router) RunTLS(addr, certFile, keyFile string) {
 	lionLogger.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, r))
 }
 
+// Define registers some middleware using a name for reuse later using UseNamed method.
 func (r *Router) Define(name string, mws ...Middleware) {
 	r.namedMiddlewares[name] = append(r.namedMiddlewares[name], mws...)
 }
 
+// Define is a convenience wrapper for Define() to use MiddlewareFunc instead of a Middleware instance
 func (r *Router) DefineFunc(name string, mws ...MiddlewareFunc) {
 	for _, mw := range mws {
 		r.Define(name, mw)
 	}
 }
 
+// UseNamed adds a middleware already defined using Define method.
+// If it cannot find it in the current router, it will look for it in the parent router.
 func (r *Router) UseNamed(name string) {
 	if r.hasNamed(name) { // Find if it this is registered in the current router
 		r.Use(r.namedMiddlewares[name]...)

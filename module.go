@@ -1,15 +1,19 @@
 package lion
 
+// Module represent an independent router entity.
+// It should be used to group routes and subroutes together.
 type Module interface {
 	Resource
 	Base() string
 	Routes(*Router)
 }
 
+// ModuleRequirements specify that the module requires specific named middlewares.
 type ModuleRequirements interface {
 	Requires() []string
 }
 
+// Module register modules for the current router instance.
 func (r *Router) Module(modules ...Module) {
 	for _, m := range modules {
 		r.registerModule(m)
