@@ -35,6 +35,7 @@ func TestRouteMatching(t *testing.T) {
 	userSuperHandler := fakeHandler()
 	userMainWildcard := fakeHandler()
 	emptywildcardHandler := fakeHandler()
+	unicodeAlphaHandler := fakeHandler()
 
 	routes := []struct {
 		Method  string
@@ -62,6 +63,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/users/super/*", Handler: userSuperHandler},
 		{Pattern: "/users/*", Handler: userMainWildcard},
 		{Pattern: "/empty/*", Handler: emptywildcardHandler},
+		{Pattern: "/α", Handler: unicodeAlphaHandler},
 	}
 
 	tests := []struct {
@@ -95,6 +97,9 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: M{"*": "123/okay/yes"}},
 		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: M{"*": ""}},
 		{Input: "/carts404", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/α", ExpectedHandler: unicodeAlphaHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "أسد"}},
+		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: M{"name": "أسد"}},
 	}
 
 	mux := New()
