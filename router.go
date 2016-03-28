@@ -254,7 +254,7 @@ func (r *Router) HandleFunc(method, pattern string, fn HandlerFunc) {
 
 // ServeHTTP calls ServeHTTPC with a context.Background()
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.ServeHTTPC(context.TODO(), w, req)
+	r.ServeHTTPC(context.Background(), w, req)
 }
 
 // ServeHTTPC finds the handler associated with the request's path.
