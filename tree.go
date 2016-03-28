@@ -224,7 +224,7 @@ LOOP:
 			if len(root.children[i]) == 0 {
 				// If the searched path does not start with the current pattern and there are no children greather than the current nodeType.
 				// Then go back to the previous(parent) node and search for childs of the next nodeType.
-				if !strings.HasPrefix(search, root.pattern) && root.children.isEmptyStartingWith(t+1) {
+				if !strings.HasPrefix(search, root.pattern) && root.children.isEmptyStartingWith(t+1) && prev != root {
 					root = prev
 					search = prevsearch
 					i = previ

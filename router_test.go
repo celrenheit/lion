@@ -57,7 +57,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
 		{Pattern: "/@:username", Handler: usernameHandler},
-		{Pattern: "/*", Handler: wildcardHandler},
+		{Pattern: "/static/*", Handler: wildcardHandler},
 		{Pattern: "/users/:userID/profile", Handler: userProfileHandler},
 		{Pattern: "/users/super/*", Handler: userSuperHandler},
 		{Pattern: "/users/*", Handler: userMainWildcard},
@@ -69,6 +69,7 @@ func TestRouteMatching(t *testing.T) {
 		Input           string
 		ExpectedHandler Handler
 		ExpectedParams  M
+		ExpectedStatus  int
 	}{
 		{Input: "/hello", ExpectedHandler: helloHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "batman"}},
@@ -88,11 +89,12 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "path": "folder/subfolder/file"}},
 		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: M{"file": "batman", "ext": "jpg"}},
 		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: M{"username": "celrenheit"}},
-		{Input: "/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
+		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
 		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: M{"userID": "123"}},
 		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: M{"*": "123/okay/yes"}},
 		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: M{"*": "123/okay/yes"}},
 		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: M{"*": ""}},
+		{Input: "/carts404", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
 	}
 
 	mux := New()
@@ -132,9 +134,12 @@ func TestRouteMatching(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		mux.ServeHTTP(w, req)
-
+		expectedStatus := http.StatusOK
+		if test.ExpectedStatus != 0 {
+			expectedStatus = test.ExpectedStatus
+		}
 		// Compare response code
-		if w.Code != http.StatusOK {
+		if w.Code != expectedStatus {
 			t.Errorf("Response should be 200 OK for %s", test.Input)
 		}
 	}
@@ -292,6 +297,10 @@ func expectBody(t *testing.T, mux http.Handler, method, path, v string) {
 	}
 }
 
+type fakeHandlerType struct{}
+
+func (_ *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
+
 func fakeHandler() Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {})
+	return new(fakeHandlerType)
 }
