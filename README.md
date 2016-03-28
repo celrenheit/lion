@@ -25,6 +25,8 @@ Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares fo
       - [Using native http.Handler using *lion.Wrap()*](#using-native-httphandler-using-lionwrap)
       - [Using native http.Handler using *lion.WrapFunc()*](#using-native-httphandler-using-lionwrapfunc)
   - [Middlewares](#middlewares)
+    - [Using Named Middlewares](#using-named-middlewares)
+    - [Using Negroni Middlewares](#using-negroni-middlewares)
   - [Resources](#resources)
   - [Examples](#examples)
     - [Using GET, POST, PUT, DELETE http methods](#using-get-post-put-delete-http-methods)
@@ -242,7 +244,27 @@ func middlewareFunc(next Handler) Handler  {
 }
 ```
 
-You can also use Negroni middlewares by registering them using:
+### Using Named Middlewares
+
+Named middlewares are designed to be able to reuse a previously defined middleware. For example, if you have a EnsureAuthenticated middleware that check whether a user is logged in.
+You can define it once and reuse later in your application.
+
+```go
+l := lion.New()
+l.Define("EnsureAuthenticated", NewEnsureAuthenticatedMiddleware())
+```
+
+To reuse it later in your application, you can use the `UseNamed` method. If it cannot find the named middleware if the current Router instance it will try to find it in the parent router.
+If a named middleware is not found it will panic.
+
+```go
+api := l.Group("/api")
+api.UseNamed("EnsureAuthenticated")
+```
+
+### Using Negroni Middlewares
+
+You can use [Negroni](https://github.com/codegangsta/negroni) middlewares you can find a list of third party middlewares [here](https://github.com/codegangsta/negroni#third-party-middleware)
 
 ```go
 l := lion.New()
@@ -479,7 +501,7 @@ l.Run()
 
 # Benchmarks
 
-Without [path.Clean](https://golang.org/pkg/path/#Clean)
+Without path cleaning
 
 ```
 BenchmarkLion_Param       	10000000	       164 ns/op	       0 B/op	       0 allocs/op
@@ -500,7 +522,7 @@ BenchmarkLion_ParseAll    	  300000	      5242 ns/op	       0 B/op	       0 allo
 BenchmarkLion_StaticAll   	   50000	     37998 ns/op	       0 B/op	       0 allocs/op
 ```
 
-With [path.Clean](https://golang.org/pkg/path/#Clean)
+With path cleaning
 
 ```
 BenchmarkLion_Param       	10000000	       227 ns/op	       0 B/op	       0 allocs/op
