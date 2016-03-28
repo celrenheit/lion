@@ -34,7 +34,9 @@ func NewContextWithParent(c context.Context) *Context {
 // Value returns the value for the passed key. If it is not found in the url params it returns parent's context Value
 func (p *Context) Value(key interface{}) interface{} {
 	if k, ok := key.(string); ok {
-		return p.Param(k)
+		if val, exist := p.ParamOk(k); exist {
+			return val
+		}
 	}
 
 	return p.parent.Value(key)
@@ -47,12 +49,17 @@ func (p *Context) addParam(key, val string) {
 
 // Param returns the value of a param
 func (p *Context) Param(key string) string {
+	val, _ := p.ParamOk(key)
+	return val
+}
+
+func (p *Context) ParamOk(key string) (string, bool) {
 	for i, name := range p.keys {
 		if name == key {
-			return p.values[i]
+			return p.values[i], true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func (p *Context) reset() {
