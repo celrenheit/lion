@@ -3,6 +3,8 @@ package lion
 import (
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"sync"
 
 	"golang.org/x/net/context"
@@ -252,7 +254,7 @@ func (r *Router) HandleFunc(method, pattern string, fn HandlerFunc) {
 
 // ServeHTTP calls ServeHTTPC with a context.Background()
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.ServeHTTPC(context.TODO(), w, req)
+	r.ServeHTTPC(context.Background(), w, req)
 }
 
 // ServeHTTPC finds the handler associated with the request's path.
@@ -289,11 +291,15 @@ func (r *Router) NotFoundHandler(handler Handler) {
 // This can be used as shown below:
 // 	r := New()
 // 	r.ServeFiles("/static", http.Dir("static")) // This will serve files in the directory static with /static prefix
-func (r *Router) ServeFiles(path string, root http.FileSystem) {
-	fileServer := http.FileServer(root)
-	r.Get(path, HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-		fileServer.ServeHTTP(w, r)
-	}))
+func (r *Router) ServeFiles(base string, root http.FileSystem) {
+	if strings.IndexAny(base, ":*") != -1 {
+		panic("Lion: ServeFiles cannot have url parameters")
+	}
+
+	pattern := path.Join(base, "/*")
+	fileServer := http.StripPrefix(base, http.FileServer(root))
+
+	r.GetH(pattern, fileServer)
 }
 
 // GetH wraps a http.Handler
