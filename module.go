@@ -13,6 +13,12 @@ type ModuleRequirements interface {
 	Requires() []string
 }
 
+// ModuleAttacher attaches it self to the parent router. It gives the parent router as argument before grouping into the Base() routes.
+// It useful for example to specify named middlewares that can be reused in the parent router.
+type ModuleAttacher interface {
+	Attach(*Router)
+}
+
 // Module register modules for the current router instance.
 func (r *Router) Module(modules ...Module) {
 	for _, m := range modules {
@@ -21,6 +27,10 @@ func (r *Router) Module(modules ...Module) {
 }
 
 func (r *Router) registerModule(m Module) {
+	if attacher, ok := m.(ModuleAttacher); ok {
+		attacher.Attach(r)
+	}
+
 	g := r.Group(m.Base())
 	if req, ok := m.(ModuleRequirements); ok {
 		for _, dep := range req.Requires() {
