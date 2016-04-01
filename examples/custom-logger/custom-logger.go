@@ -9,11 +9,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func home(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+func hello(c context.Context, w http.ResponseWriter, r *http.Request) {
 	ctx := lion.C(c)
 	fmt.Fprintf(w, "Hello "+ctx.Param("name"))
 }
@@ -33,7 +33,7 @@ func (*logger) ServeNext(next lion.Handler) lion.Handler {
 func main() {
 	l := lion.New()
 	l.Use(&logger{})
-	l.GetFunc("/", Home)
-	l.GetFunc("/hello/:name", Hello)
+	l.GetFunc("/", home)
+	l.GetFunc("/hello/:name", hello)
 	l.Run(":3000")
 }

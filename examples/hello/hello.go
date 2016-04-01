@@ -8,18 +8,18 @@ import (
 	"golang.org/x/net/context"
 )
 
-func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func home(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+func hello(c context.Context, w http.ResponseWriter, r *http.Request) {
 	name := lion.Param(c, "name")
 	fmt.Fprintf(w, "Hello "+name)
 }
 
 func main() {
 	l := lion.Classic()
-	l.GetFunc("/", Home)
-	l.GetFunc("/hello/:name", Hello)
+	l.GetFunc("/", home)
+	l.GetFunc("/hello/:name", hello)
 	l.Run()
 }

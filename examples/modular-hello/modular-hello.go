@@ -11,46 +11,46 @@ import (
 func main() {
 	l := lion.Classic()
 	api := l.Group("/api")
-	api.Module(Products{})
+	api.Module(products{})
 	l.Run()
 }
 
-// Products module is accessible at url: /api/products
+// products module is accessible at url: /api/products
 // It handles getting a list of products or creating a new product
-type Products struct{}
+type products struct{}
 
-func (p Products) Base() string {
+func (p products) Base() string {
 	return "/products"
 }
 
-func (p Products) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p products) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Fetching all products")
 }
 
-func (p Products) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p products) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Creating a new product")
 }
 
-func (p Products) Routes(r *lion.Router) {
+func (p products) Routes(r *lion.Router) {
 	// Defining a resource for getting, editing and deleting a single product
-	r.Resource("/:id", OneProduct{})
+	r.Resource("/:id", oneProduct{})
 }
 
-// OneProduct resource is accessible at url: /api/products/:id
+// oneProduct resource is accessible at url: /api/products/:id
 // It handles getting, editing and deleting a single product
-type OneProduct struct{}
+type oneProduct struct{}
 
-func (p OneProduct) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p oneProduct) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Getting product: %s", id)
 }
 
-func (p OneProduct) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p oneProduct) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Updating article: %s", id)
 }
 
-func (p OneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p oneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Deleting article: %s", id)
 }

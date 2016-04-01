@@ -8,17 +8,17 @@ import (
 	"golang.org/x/net/context"
 )
 
-type TodoList struct{}
+type todoList struct{}
 
-func (t TodoList) Uses() lion.Middlewares {
+func (t todoList) Uses() lion.Middlewares {
 	return lion.Middlewares{lion.NewLogger()}
 }
 
-func (t TodoList) GetMiddlewares() lion.Middlewares {
+func (t todoList) GetMiddlewares() lion.Middlewares {
 	return lion.Middlewares{lion.NewRecovery()}
 }
 
-func (t TodoList) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t todoList) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "TODO")
 	// Should be catched by GetMiddlewares()'s Recovery middleware
 	panic("test")
@@ -26,6 +26,6 @@ func (t TodoList) Get(c context.Context, w http.ResponseWriter, r *http.Request)
 
 func main() {
 	l := lion.New()
-	l.Resource("/todos", TodoList{})
+	l.Resource("/todos", todoList{})
 	l.Run()
 }

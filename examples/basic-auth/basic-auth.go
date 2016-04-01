@@ -16,11 +16,11 @@ const basicAuthPrefix = "Basic "
 var user = []byte("lion")
 var pass = []byte("argh")
 
-func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func home(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func BasicAuthMiddleware(next lion.Handler) lion.Handler {
+func basicAuthMiddleware(next lion.Handler) lion.Handler {
 	return lion.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
@@ -46,17 +46,17 @@ func BasicAuthMiddleware(next lion.Handler) lion.Handler {
 	})
 }
 
-func ProtectedHome(c context.Context, w http.ResponseWriter, r *http.Request) {
+func protectedHome(c context.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Connected to the protected home")
 }
 
 func main() {
 	l := lion.Classic()
-	l.GetFunc("/", Home)
+	l.GetFunc("/", home)
 
 	g := l.Group("/protected")
-	g.UseFunc(BasicAuthMiddleware)
-	g.GetFunc("/", ProtectedHome)
+	g.UseFunc(basicAuthMiddleware)
+	g.GetFunc("/", protectedHome)
 
 	l.Run(":3000")
 }
