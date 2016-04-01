@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// HTTP methods constants
 const (
 	GET     = "GET"
 	HEAD    = "HEAD"
@@ -17,7 +18,7 @@ const (
 	PATCH   = "PATCH"
 )
 
-var allowedHttpMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
+var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
 
 type nodeType uint8
 
@@ -50,7 +51,7 @@ type methodsHandlers struct {
 }
 
 func (n *node) isLeaf() bool {
-	for _, m := range allowedHttpMethods {
+	for _, m := range allowedHTTPMethods {
 		if n.getHandler(m) != nil {
 			return true
 		}

@@ -128,13 +128,6 @@ func (rec *Recovery) ServeNext(next Handler) Handler {
 	})
 }
 
-func defaultPanicHandler() Handler {
-	return HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		log.Println(fmt.Sprintf("%v", ctx.Value("panic")))
-		http.Error(w, fmt.Sprintf("%v", ctx.Value("panic")), http.StatusInternalServerError)
-	})
-}
-
 // Static is a middleware handler that serves static files in the given directory/filesystem.
 // Taken from https://github.com/codegangsta/negroni/blob/master/static.go
 type Static struct {

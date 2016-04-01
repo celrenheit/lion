@@ -1,4 +1,4 @@
-// Lion is a fast HTTP router for building modern scalable modular REST APIs in Go.
+// Package lion is a fast HTTP router for building modern scalable modular REST APIs in Go.
 //
 // Install and update:
 //    go get -u github.com/celrenheit/lion
@@ -82,6 +82,7 @@ func (m MiddlewareFunc) ServeNext(next Handler) Handler {
 // Middlewares is an array of Middleware
 type Middlewares []Middleware
 
+// BuildHandler builds a chain of middlewares from a passed Handler and returns a Handler
 func (middlewares Middlewares) BuildHandler(handler Handler) Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = middlewares[i].ServeNext(handler)

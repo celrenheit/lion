@@ -177,6 +177,7 @@ func (h negroniHandlerFunc) ServeHTTP(rw http.ResponseWriter, r *http.Request, n
 	h(rw, r, next)
 }
 
+// UseNegroni gives the ability to use Negroni.Handler middlewares as lion.Middlewares
 func (r *Router) UseNegroni(n negroniHandler) {
 	r.Use(MiddlewareFunc(func(next Handler) Handler {
 		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
@@ -187,11 +188,12 @@ func (r *Router) UseNegroni(n negroniHandler) {
 	}))
 }
 
+// UseNegroniFunc is a convenience wrapper for UseNegroni to Negroni.HandlerFunc
 func (r *Router) UseNegroniFunc(n func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)) {
 	r.UseNegroni(negroniHandlerFunc(n))
 }
 
-// UseHandler uses
+// UseHandler gives the ability to add and serve a Handler and serve the next handler
 func (r *Router) UseHandler(handler Handler) {
 	r.UseFunc(func(next Handler) Handler {
 		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
@@ -201,7 +203,7 @@ func (r *Router) UseHandler(handler Handler) {
 	})
 }
 
-// UseHandlerFunc uses
+// UseHandlerFunc is a convenience wrapper for UseHandler
 func (r *Router) UseHandlerFunc(fn HandlerFunc) {
 	r.UseHandler(HandlerFunc(fn))
 }
@@ -282,6 +284,7 @@ func (r *Router) notFound(c context.Context, w http.ResponseWriter, req *http.Re
 	}
 }
 
+// NotFoundHandler gives the ability to use a specific 404 NOT FOUND handler
 func (r *Router) NotFoundHandler(handler Handler) {
 	r.notFoundHandler = handler
 }
@@ -384,7 +387,7 @@ func (r *Router) Define(name string, mws ...Middleware) {
 	r.namedMiddlewares[name] = append(r.namedMiddlewares[name], mws...)
 }
 
-// Define is a convenience wrapper for Define() to use MiddlewareFunc instead of a Middleware instance
+// DefineFunc is a convenience wrapper for Define() to use MiddlewareFunc instead of a Middleware instance
 func (r *Router) DefineFunc(name string, mws ...MiddlewareFunc) {
 	for _, mw := range mws {
 		r.Define(name, mw)

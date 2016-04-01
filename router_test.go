@@ -304,7 +304,7 @@ func expectBody(t *testing.T, mux http.Handler, method, path, v string) {
 
 type fakeHandlerType struct{}
 
-func (_ *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
+func (f *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
 
 func fakeHandler() Handler {
 	return new(fakeHandlerType)
