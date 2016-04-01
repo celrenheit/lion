@@ -22,8 +22,8 @@ Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares fo
     - [Using Handlers](#using-handlers)
     - [Using HandlerFuncs](#using-handlerfuncs)
     - [Using native http.Handler](#using-native-httphandler)
-      - [Using native http.Handler using *lion.Wrap()*](#using-native-httphandler-using-lionwrap)
-      - [Using native http.Handler using *lion.WrapFunc()*](#using-native-httphandler-using-lionwrapfunc)
+      - [Using native http.Handler with *lion.Wrap()*](#using-native-httphandler-with-lionwrap)
+      - [Using native http.Handler with *lion.WrapFunc()*](#using-native-httphandler-with-lionwrapfunc)
   - [Middlewares](#middlewares)
     - [Using Named Middlewares](#using-named-middlewares)
     - [Using Negroni Middlewares](#using-negroni-middlewares)
@@ -198,7 +198,7 @@ l.PutH("/somepath", nativehandler{})
 l.DeleteH("/somepath", nativehandler{})
 ```
 
-#### Using native http.Handler using *lion.Wrap()*
+#### Using native http.Handler with *lion.Wrap()*
 
 *Note*: using native http handler you cannot access url params.
 
@@ -210,7 +210,7 @@ func main() {
 }
 ```
 
-#### Using native http.Handler using *lion.WrapFunc()*
+#### Using native http.Handler with *lion.WrapFunc()*
 
 
 ```go
