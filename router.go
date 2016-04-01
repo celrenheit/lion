@@ -292,7 +292,7 @@ func (r *Router) NotFoundHandler(handler Handler) {
 // 	r := New()
 // 	r.ServeFiles("/static", http.Dir("static")) // This will serve files in the directory static with /static prefix
 func (r *Router) ServeFiles(base string, root http.FileSystem) {
-	if strings.IndexAny(base, ":*") != -1 {
+	if strings.ContainsAny(base, ":*") {
 		panic("Lion: ServeFiles cannot have url parameters")
 	}
 
