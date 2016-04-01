@@ -47,12 +47,14 @@ func (p *Context) addParam(key, val string) {
 	p.values = append(p.values, val)
 }
 
-// Param returns the value of a param
+// Param returns the value of a param.
+// If it does not exist it returns an empty string
 func (p *Context) Param(key string) string {
 	val, _ := p.ParamOk(key)
 	return val
 }
 
+// ParamOk returns the value of a param and a boolean that indicates if the param exists.
 func (p *Context) ParamOk(key string) (string, bool) {
 	for i, name := range p.keys {
 		if name == key {
