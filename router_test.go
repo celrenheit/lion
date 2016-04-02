@@ -2,8 +2,11 @@ package lion
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -273,6 +276,39 @@ func TestNamedMiddlewares(t *testing.T) {
 func TestEmptyRouter(t *testing.T) {
 	l := New()
 	expectStatus(t, l, "GET", "/", http.StatusNotFound)
+}
+
+func TestServeFiles(t *testing.T) {
+	cwd, _ := os.Getwd()
+	// Temporary directory
+	dir, err := ioutil.TempDir(cwd, "test_serve")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Temporary file in the Temporary directory created previously
+	f, err := ioutil.TempFile(dir, "")
+	f.WriteString("Lion")
+	f.Close()
+
+	_, filename := filepath.Split(f.Name())
+
+	l := New()
+
+	// ServeFiles
+	l.ServeFiles("/public", http.Dir(dir))
+	expectBody(t, l, "GET", "/public/"+filename, "Lion")
+	expectStatus(t, l, "GET", "/public/"+filename, http.StatusOK)
+	expectStatus(t, l, "HEAD", "/public/"+filename, http.StatusOK)
+	expectHeader(t, l, "HEAD", "/public/"+filename, "Content-type", "text/plain; charset=utf-8")
+
+	// ServeFile
+	l.ServeFile("/file", f.Name())
+	expectBody(t, l, "GET", "/file", "Lion")
+	expectStatus(t, l, "GET", "/file", http.StatusOK)
+	expectStatus(t, l, "HEAD", "/file", http.StatusOK)
+	expectHeader(t, l, "HEAD", "/file", "Content-type", "text/plain; charset=utf-8")
 }
 
 func TestRouterShouldPanic(t *testing.T) {

@@ -303,6 +303,24 @@ func (r *Router) ServeFiles(base string, root http.FileSystem) {
 	fileServer := http.StripPrefix(base, http.FileServer(root))
 
 	r.GetH(pattern, fileServer)
+	r.HeadH(pattern, fileServer)
+}
+
+// ServeFile serve a specfic file located at the passed path
+//
+// 	l := New()
+// 	l.ServeFile("/robots.txt", "path/to/robots.txt")
+func (r *Router) ServeFile(base, path string) {
+	if strings.ContainsAny(base, ":*") {
+		panic("Lion: ServeFile cannot have url parameters")
+	}
+
+	handler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path)
+	})
+
+	r.Get(base, handler)
+	r.Head(base, handler)
 }
 
 // GetH wraps a http.Handler
