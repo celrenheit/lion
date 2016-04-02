@@ -275,6 +275,35 @@ func TestEmptyRouter(t *testing.T) {
 	expectStatus(t, l, "GET", "/", http.StatusNotFound)
 }
 
+func TestRouterShouldPanic(t *testing.T) {
+	l := New()
+	recv := catchPanic(func() {
+		l.Get("path", fakeHandler())
+	})
+
+	if recv == nil {
+		t.Error("Should panic when path does not start with '/'")
+	}
+
+	recv = catchPanic(func() {
+		l.UseNamed("unknow middleware")
+	})
+
+	if recv == nil {
+		t.Error("Should panic when using an unknown named middleware")
+	}
+}
+
+func catchPanic(fn func()) (recv interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			recv = r
+		}
+	}()
+	fn()
+	return
+}
+
 func expectStatus(t *testing.T, mux http.Handler, method, path string, status int) {
 	req, _ := http.NewRequest(method, path, nil)
 	w := httptest.NewRecorder()
