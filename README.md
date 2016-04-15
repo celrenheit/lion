@@ -551,7 +551,11 @@ https://github.com/celrenheit/lion/blob/master/LICENSE
 
 # Todo
 
-* [ ] Better static file handling
+* [ ] Support for Go 1.7 context
+* [ ] Websocket handling
+* [ ] Modules
+  * [ ] JWT Auth module
+* [x] Better static file handling
 * [ ] More documentation
 
 # Credits
