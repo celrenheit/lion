@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/celrenheit/htest"
 
 	"golang.org/x/net/context"
 )
@@ -114,6 +115,8 @@ func TestRouteMatching(t *testing.T) {
 		mux.Handle(method, r.Pattern, r.Handler)
 	}
 
+	tester := htest.New(t, mux)
+
 	for _, test := range tests {
 		method := "GET"
 		if test.Method != "" {
@@ -139,17 +142,13 @@ func TestRouteMatching(t *testing.T) {
 			t.Errorf("Handler not match for %s", test.Input)
 		}
 
-		w := httptest.NewRecorder()
-
-		mux.ServeHTTP(w, req)
 		expectedStatus := http.StatusOK
 		if test.ExpectedStatus != 0 {
 			expectedStatus = test.ExpectedStatus
 		}
-		// Compare response code
-		if w.Code != expectedStatus {
-			t.Errorf("Response should be 200 OK for %s", test.Input)
-		}
+
+		tester.Request(method, test.Input).Do().
+			ExpectStatus(expectedStatus)
 	}
 }
 
@@ -168,8 +167,7 @@ func TestMiddleware(t *testing.T) {
 	mux.Get("/hi", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hi!"))
 	}))
-
-	expectHeader(t, mux, "GET", "/hi", "Test-Key", "Test-Value")
+	htest.New(t, mux).Get("/hi").Do().ExpectHeader("Test-Key", "Test-Value")
 }
 
 func TestMiddlewareFunc(t *testing.T) {
@@ -184,7 +182,7 @@ func TestMiddlewareFunc(t *testing.T) {
 		w.Write([]byte("Hi!"))
 	}))
 
-	expectHeader(t, mux, "GET", "/hi", "Test-Key", "Test-Value")
+	htest.New(t, mux).Get("/hi").Do().ExpectHeader("Test-Key", "Test-Value")
 }
 
 func TestMiddlewareChain(t *testing.T) {
@@ -204,7 +202,7 @@ func TestMountingSubrouter(t *testing.T) {
 
 	mux.Mount("/admin", adminrouter)
 
-	expectHeader(t, mux, "GET", "/admin/123", "admin", "id")
+	htest.New(t, mux).Get("/admin/123").Do().ExpectHeader("admin", "id")
 }
 
 func TestGroupSubGroup(t *testing.T) {
@@ -235,8 +233,9 @@ func TestGroupSubGroup(t *testing.T) {
 		w.Write([]byte("Put"))
 	})
 
-	expectHeader(t, s, "GET", "/admin", "Test-Key", "Get")
-	expectHeader(t, s, "PUT", "/admin", "Test-Key", "Put")
+	test := htest.New(t, s)
+	test.Get("/admin").Do().ExpectHeader("Test-Key", "Get")
+	test.Put("/admin").Do().ExpectHeader("Test-Key", "Put")
 }
 
 func TestNamedMiddlewares(t *testing.T) {
@@ -267,15 +266,19 @@ func TestNamedMiddlewares(t *testing.T) {
 		w.Write([]byte("publictest"))
 	})
 
-	expectHeader(t, l, "GET", "/admin/test", "Test-Key", "admin")
-	expectHeader(t, l, "GET", "/public/test", "Test-Key", "public")
-	expectBody(t, l, "GET", "/admin/test", "admintest")
-	expectBody(t, l, "GET", "/public/test", "publictest")
+	test := htest.New(t, l)
+	test.Get("/admin/test").Do().
+		ExpectHeader("Test-Key", "admin").
+		ExpectBody("admintest")
+
+	test.Get("/public/test").Do().
+		ExpectHeader("Test-Key", "public").
+		ExpectBody("publictest")
 }
 
 func TestEmptyRouter(t *testing.T) {
 	l := New()
-	expectStatus(t, l, "GET", "/", http.StatusNotFound)
+	htest.New(t, l).Get("/").Do().ExpectStatus(http.StatusNotFound)
 }
 
 func TestServeFiles(t *testing.T) {
@@ -295,20 +298,29 @@ func TestServeFiles(t *testing.T) {
 	_, filename := filepath.Split(f.Name())
 
 	l := New()
+	test := htest.New(t, l)
 
 	// ServeFiles
 	l.ServeFiles("/public", http.Dir(dir))
-	expectBody(t, l, "GET", "/public/"+filename, "Lion")
-	expectStatus(t, l, "GET", "/public/"+filename, http.StatusOK)
-	expectStatus(t, l, "HEAD", "/public/"+filename, http.StatusOK)
-	expectHeader(t, l, "HEAD", "/public/"+filename, "Content-type", "text/plain; charset=utf-8")
+
+	// Tests
+	test.Get("/public/" + filename).Do().
+		ExpectBody("Lion").
+		ExpectStatus(http.StatusOK)
+	test.Head("/public/"+filename).Do().
+		ExpectHeader("Content-type", "text/plain; charset=utf-8").
+		ExpectStatus(http.StatusOK)
 
 	// ServeFile
 	l.ServeFile("/file", f.Name())
-	expectBody(t, l, "GET", "/file", "Lion")
-	expectStatus(t, l, "GET", "/file", http.StatusOK)
-	expectStatus(t, l, "HEAD", "/file", http.StatusOK)
-	expectHeader(t, l, "HEAD", "/file", "Content-type", "text/plain; charset=utf-8")
+
+	// Tests
+	test.Get("/file").Do().
+		ExpectBody("Lion").
+		ExpectStatus(http.StatusOK)
+	test.Head("/file").Do().
+		ExpectHeader("Content-type", "text/plain; charset=utf-8").
+		ExpectStatus(http.StatusOK)
 }
 
 func TestRouterShouldPanic(t *testing.T) {
@@ -338,33 +350,6 @@ func catchPanic(fn func()) (recv interface{}) {
 	}()
 	fn()
 	return
-}
-
-func expectStatus(t *testing.T, mux http.Handler, method, path string, status int) {
-	req, _ := http.NewRequest(method, path, nil)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-	if w.Code != status {
-		t.Errorf("Expected status code to be %d but got %d for request: %s %s", status, w.Code, method, path)
-	}
-}
-
-func expectHeader(t *testing.T, mux http.Handler, method, path, k, v string) {
-	req, _ := http.NewRequest(method, path, nil)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-	if w.Header().Get(k) != v {
-		t.Errorf("Expected header to be %s but got %s for request: %s %s", v, w.Header().Get(k), method, path)
-	}
-}
-
-func expectBody(t *testing.T, mux http.Handler, method, path, v string) {
-	req, _ := http.NewRequest(method, path, nil)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-	if w.Body.String() != v {
-		t.Errorf("Expected body to be %s but got %s for request: %s %s", v, w.Body.String(), method, path)
-	}
 }
 
 type fakeHandlerType struct{}

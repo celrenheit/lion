@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/celrenheit/htest"
+
 	"golang.org/x/net/context"
 )
 
@@ -49,7 +51,9 @@ func TestModule(t *testing.T) {
 
 	l.Module(testmodule{"/admin"})
 
-	expectHeader(t, l, "GET", "/admin", "auth", "authmw")
-	expectHeader(t, l, "GET", "/admin", "token", "jwtmw")
-	expectBody(t, l, "GET", "/admin", "getmodule")
+	test := htest.New(t, l)
+	test.Get("/admin").Do().
+		ExpectHeader("auth", "authmw").
+		ExpectHeader("token", "jwtmw").
+		ExpectBody("getmodule")
 }
