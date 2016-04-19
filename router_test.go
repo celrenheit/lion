@@ -342,6 +342,18 @@ func TestRouterShouldPanic(t *testing.T) {
 	}
 }
 
+func TestStaticAndWildcardTriggersPanic(t *testing.T) {
+	l := New()
+	l.Get("/api", fakeHandler())
+	l.Get("/*wild", fakeHandler())
+	recv := catchPanic(func() {
+		htest.New(t, l).Get("/").Do().ExpectStatus(http.StatusOK)
+	})
+	if recv != nil {
+		t.Errorf("Panic triggers")
+	}
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {

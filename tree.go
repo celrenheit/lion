@@ -90,6 +90,9 @@ func (n *node) addHandler(method string, handler Handler) {
 }
 
 func (n *node) getHandler(method string) Handler {
+	if n.handlers == nil {
+		return nil
+	}
 	switch method {
 	case GET:
 		return n.handlers.get
