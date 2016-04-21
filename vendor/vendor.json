@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "2fgA64ELeBzGxVUg8trxwCX+5es=",
+			"path": "github.com/celrenheit/htest",
+			"revision": "356d2d8fe92d82014ee46bfc684d039de5009678",
+			"revisionTime": "2016-04-21T00:34:24Z"
+		},
+		{
+			"checksumSHA1": "U3c1xAnpa/oQtfsCx4lLEX5vDbs=",
+			"path": "github.com/fatih/color",
+			"revision": "7a5857db0b2752a436d8461d88c42dea0ee191c0",
+			"revisionTime": "2016-02-12T09:24:09Z"
+		},
+		{
+			"checksumSHA1": "rCffFCN6TpDAN3Jylyo8RFzhQ9E=",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "9cbef7c35391cca05f15f8181dc0b18bc9736dbb",
+			"revisionTime": "2016-02-20T07:59:35Z"
+		},
+		{
+			"checksumSHA1": "NkbetqlpWBi3gP08JDneC+axTKw=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639",
+			"revisionTime": "2015-12-11T00:06:21Z"
+		},
+		{
+			"checksumSHA1": "9QKY4bQlbQ/VZZFP8/1WtH4b0mA=",
+			"path": "golang.org/x/net/context",
+			"revision": "4876518f9e71663000c348837735820161a42df7",
+			"revisionTime": "2016-03-22T02:00:46Z"
+		},
+		{
+			"checksumSHA1": "opkzPE4MDhLRhmkSJais/qYb2+M=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "3826714b1e47586d04a2d62ccf2e8d13eca82790",
+			"revisionTime": "2015-07-27T03:16:35Z"
+		}
+	],
+	"rootPath": "github.com/celrenheit/lion"
+}
