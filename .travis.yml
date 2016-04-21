@@ -5,8 +5,10 @@ go:
   - 1.5
   - 1.6
   - tip
+env:
+  - GO15VENDOREXPERIMENT=1
 install:
   - bash scripts/gogetcookie.sh
-  - go get -t -v ./...
+  - go get -t -v .
 script:
-  - go test -v ./...
+  - go test -v .
