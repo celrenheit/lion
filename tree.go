@@ -36,6 +36,7 @@ type node struct {
 	label       byte
 	endinglabel byte
 	handlers    *methodsHandlers
+	pname       string
 }
 
 type methodsHandlers struct {
@@ -263,17 +264,9 @@ LOOP:
 				}
 
 				if xn.nodeType == wildcard {
-					key := "*"
-					// If wildcard parameter has a name use it as a key.
-					// For example:
-					// 		/*path  will be stored as 			"path" = "value"
-					// 		/*  		will be stored as 			"*" = "value"
-					if len(xn.pattern) > 1 {
-						key = xn.pattern[1:]
-					}
-					c.addParam(key, xsearch)
+					c.addParam(xn.pname, xsearch)
 				} else {
-					c.addParam(xn.pattern[1:], xsearch[:p])
+					c.addParam(xn.pname, xsearch[:p])
 				}
 
 				xsearch = xsearch[p:]
@@ -359,22 +352,35 @@ func (n *node) addChild(method string, child *node) {
 		l := len(search)
 		handler := child.getHandler(method)
 		child.nodeType = ndtype
+		var endingpos int
 		if ndtype == wildcard {
-			pos = -1
+			endingpos = -1
 		} else {
-			pos = stringsIndexAny(search, "./")
+			endingpos = stringsIndexAny(search, "./")
 		}
-		if pos < 0 {
-			pos = l
+		if endingpos < 0 {
+			endingpos = l
 		} else {
-			child.endinglabel = search[pos]
+			child.endinglabel = search[endingpos]
+		}
+		child.pattern = search[:endingpos]
+
+		// Find parameter name
+		var pname string
+		if ndtype == wildcard {
+			pname = "*"
+			if len(child.pattern) > 1 {
+				pname = child.pattern[1:]
+			}
+		} else {
+			pname = child.pattern[1:]
 		}
 
-		child.pattern = search[:pos]
+		child.pname = pname
 
-		if pos != l {
+		if endingpos != l {
 			child.addHandler(method, nil)
-			search = search[pos:]
+			search = search[endingpos:]
 			subchild := &node{
 				label:    search[0],
 				pattern:  search,
@@ -391,11 +397,22 @@ func (n *node) addChild(method string, child *node) {
 		child.pattern = search[:pos]
 		child.addHandler(method, nil)
 
+		var pname string
+		if ndtype == wildcard {
+			pname = "*"
+			if len(child.pattern) > 1 {
+				pname = child.pattern[1:]
+			}
+		} else {
+			pname = child.pattern[1:]
+		}
+
 		search = search[pos:]
 		subchild := &node{
 			label:    search[0],
 			nodeType: ndtype,
 			pattern:  search,
+			pname:    pname,
 		}
 		subchild.addHandler(method, handler)
 		child.addChild(method, subchild)

@@ -354,6 +354,52 @@ func TestStaticAndWildcardTriggersPanic(t *testing.T) {
 	}
 }
 
+func TestValidation(t *testing.T) {
+	l := New()
+	l.Get("/api/:key", fakeHandler())
+	recv := catchPanic(func() {
+		l.Get("/api/:key/picture/:key", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for duplicated parameter names")
+	}
+	l = New()
+	recv = catchPanic(func() {
+		l.Get("api2", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for path not starting with '/'")
+	}
+
+	recv = catchPanic(func() {
+		l.Group("api3")
+	})
+	if recv == nil {
+		t.Error("Should panic for group's pattern not starting with '/'")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("BATMAN", "/api", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for invalid http method")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("", "/api2", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for empty http method")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("GET", "", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for empty pattern")
+	}
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
