@@ -8,7 +8,7 @@ import (
 	"context"
 )
 
-func reqToContext(r *http.Request) context.Context {
+func contextFromRequest(r *http.Request) context.Context {
 	return r.Context()
 }
 
