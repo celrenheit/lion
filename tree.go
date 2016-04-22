@@ -352,7 +352,10 @@ func (n *node) addChild(method string, child *node) {
 		l := len(search)
 		handler := child.getHandler(method)
 		child.nodeType = ndtype
-		var endingpos int
+		var (
+			endingpos int
+			pname     string
+		)
 		if ndtype == wildcard {
 			endingpos = -1
 		} else {
@@ -366,7 +369,6 @@ func (n *node) addChild(method string, child *node) {
 		child.pattern = search[:endingpos]
 
 		// Find parameter name
-		var pname string
 		if ndtype == wildcard {
 			pname = "*"
 			if len(child.pattern) > 1 {
@@ -397,22 +399,11 @@ func (n *node) addChild(method string, child *node) {
 		child.pattern = search[:pos]
 		child.addHandler(method, nil)
 
-		var pname string
-		if ndtype == wildcard {
-			pname = "*"
-			if len(child.pattern) > 1 {
-				pname = child.pattern[1:]
-			}
-		} else {
-			pname = child.pattern[1:]
-		}
-
 		search = search[pos:]
 		subchild := &node{
 			label:    search[0],
 			nodeType: ndtype,
 			pattern:  search,
-			pname:    pname,
 		}
 		subchild.addHandler(method, handler)
 		child.addChild(method, subchild)
