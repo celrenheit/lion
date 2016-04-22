@@ -256,7 +256,7 @@ func (r *Router) HandleFunc(method, pattern string, fn HandlerFunc) {
 
 // ServeHTTP calls ServeHTTPC with a context.Background()
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.ServeHTTPC(context.Background(), w, req)
+	r.ServeHTTPC(reqToContext(req), w, req)
 }
 
 // ServeHTTPC finds the handler associated with the request's path.
@@ -266,8 +266,10 @@ func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.
 	ctx.parent = c
 
 	if ctx, h := r.router.rm.Match(ctx, req); h != nil {
+		req = addContextToRequest(req, ctx)
 		h.ServeHTTPC(ctx, w, req)
 	} else {
+		req = addContextToRequest(req, ctx)
 		r.notFound(ctx, w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
