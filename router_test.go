@@ -402,6 +402,14 @@ func TestValidation(t *testing.T) {
 	if recv == nil {
 		t.Error("Should panic for empty pattern")
 	}
+
+	recv = catchPanic(func() {
+		l.Get("/emptypname/:", fakeHandler())
+	})
+
+	if recv == nil {
+		t.Error("Should panic for an unnamed parameter")
+	}
 }
 
 func catchPanic(fn func()) (recv interface{}) {

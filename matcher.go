@@ -64,9 +64,14 @@ func (d *radixMatcher) postvalidation(method, pattern string) {
 func (d *radixMatcher) findDuplicateParamNames(n *node, method, pattern string, pnames []string) {
 	for _, children := range n.children {
 		for _, child := range children {
-			if len(child.pname) > 0 && isInStringSlice(pnames, child.pname) {
-				panicl("lion: Duplicate parameter %s for %s %s", child.pname, method, pattern)
+			if child.nodeType > static && child.pname == "" {
+				panicl(`cannot use an unnamed parameter for  %s`, pattern)
 			}
+
+			if len(child.pname) > 0 && isInStringSlice(pnames, child.pname) {
+				panicl("lion: Duplicate parameter %s for %s", child.pname, pattern)
+			}
+
 			d.findDuplicateParamNames(child, method, pattern, append(pnames, child.pname))
 		}
 	}
