@@ -65,6 +65,13 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	return nr
 }
 
+// Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
+func (r *Router) Any(pattern string, handler Handler) {
+	for _, m := range allowedHTTPMethods {
+		r.Handle(m, pattern, handler)
+	}
+}
+
 // Get registers an http GET method receiver with the provided Handler
 func (r *Router) Get(pattern string, handler Handler) {
 	r.Handle("GET", pattern, handler)
@@ -108,6 +115,11 @@ func (r *Router) Connect(pattern string, handler Handler) {
 // Patch registers an http PATCH method receiver with the provided Handler
 func (r *Router) Patch(pattern string, handler Handler) {
 	r.Handle("PATCH", pattern, handler)
+}
+
+// AnyFunc registers the provided HandlerFunc for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
+func (r *Router) AnyFunc(pattern string, handler HandlerFunc) {
+	r.Any(pattern, HandlerFunc(handler))
 }
 
 // GetFunc wraps a HandlerFunc as a Handler and registers it to the router

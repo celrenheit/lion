@@ -152,6 +152,37 @@ func TestRouteMatching(t *testing.T) {
 	}
 }
 
+type anyHandler struct{}
+
+func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprintf(w, "Any::%s", r.Method)
+}
+
+func TestAnyMethod(t *testing.T) {
+
+	l := New()
+	l.AnyFunc("/apifunc", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprintf(w, "AnyFunc::%s", r.Method)
+	})
+
+	l.Any("/api", anyHandler{})
+
+	test := htest.New(t, l)
+	for _, m := range allowedHTTPMethods {
+
+		test.Request(m, "/api").Do().
+			ExpectBody("Any::" + m).
+			ExpectStatus(http.StatusUnauthorized)
+
+		test.Request(m, "/apifunc").Do().
+			ExpectBody("AnyFunc::" + m).
+			ExpectStatus(http.StatusForbidden)
+
+	}
+}
+
 type testmw struct{}
 
 func (m testmw) ServeNext(next Handler) Handler {
