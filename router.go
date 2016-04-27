@@ -225,7 +225,7 @@ func (r *Router) Handle(method, pattern string, handler Handler) {
 	validatePattern(pattern)
 
 	var p string
-	if !r.isRoot() && pattern == "/" {
+	if !r.isRoot() && pattern == "/" && r.pattern != "" {
 		p = r.pattern
 	} else {
 		p = r.pattern + pattern
