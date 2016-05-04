@@ -61,6 +61,13 @@ func (p *Context) ParamOk(key string) (string, bool) {
 			return p.values[i], true
 		}
 	}
+
+	if c, ok := p.parent.(*Context); ok {
+		return c.ParamOk(key)
+	} else if val, ok := p.parent.Value(key).(string); ok {
+		return val, ok
+	}
+
 	return "", false
 }
 

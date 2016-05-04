@@ -47,3 +47,29 @@ func TestContextC(t *testing.T) {
 		t.Error("Context C: Parent should be context.TODO()")
 	}
 }
+
+func TestGetParamInNestedContext(t *testing.T) {
+	c := NewContextWithParent(context.Background())
+	c.addParam("id", "myid")
+	nc := context.WithValue(c, "db", "mydb")
+	nc = context.WithValue(nc, "t", "t")
+	id := Param(nc, "id")
+	if id != "myid" {
+		t.Errorf("id should be equal to 'myid' but got '%s'", id)
+	}
+
+	nonexistant := Param(nc, "nonexistant")
+	if nonexistant != "" {
+		t.Errorf("Should be empty but got '%s'", nonexistant)
+	}
+
+	val := nc.Value("db")
+	v, ok := val.(string)
+	if !ok {
+		t.Errorf("Should be a string")
+	}
+
+	if v != "mydb" {
+		t.Errorf("Value should be equal to 'mydb' but got '%s'", v)
+	}
+}
