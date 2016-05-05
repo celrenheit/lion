@@ -385,6 +385,27 @@ func TestStaticAndWildcardTriggersPanic(t *testing.T) {
 	}
 }
 
+func TestAutomaticOptions(t *testing.T) {
+	l := New()
+	l.Post("/api", fakeHandler())
+	l.Put("/api", fakeHandler())
+	l.Patch("/api", fakeHandler())
+	l.Trace("/api", fakeHandler())
+
+	htest.New(t, l).Options("/api").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("Accept", "POST,PUT,TRACE,OPTIONS,PATCH")
+
+	// Allow custom options handler
+	l.Options("/api", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Batman", "Robin")
+		w.WriteHeader(http.StatusFound)
+	}))
+	htest.New(t, l).Options("/api").Do().
+		ExpectStatus(http.StatusFound).
+		ExpectHeader("Batman", "Robin")
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -2,6 +2,9 @@ package lion
 
 import (
 	"net/http"
+	"strings"
+
+	"golang.org/x/net/context"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
@@ -42,7 +45,40 @@ func (d *radixMatcher) Register(method, pattern string, handler Handler) {
 func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 	n, c := d.root.findNode(c, r.Method, cleanPath(r.URL.Path))
 	if n == nil {
+		if r.Method == OPTIONS {
+			return c, d.automaticOptionsHandler(c, r.URL.Path)
+		}
 		return c, nil
 	}
 	return c, n.getHandler(r.Method)
+}
+
+func (d *radixMatcher) automaticOptionsHandler(c *Context, path string) Handler {
+	allowed := make([]string, 0, len(allowedHTTPMethods))
+	var fn *node // Node already found (to avoid calling too many times findNode)
+	for _, method := range allowedHTTPMethods {
+		if method == OPTIONS {
+			allowed = append(allowed, OPTIONS)
+			continue
+		}
+
+		if fn == nil {
+			n, _ := d.root.findNode(c, method, path)
+			if n != nil {
+				fn = n
+			} else {
+				continue
+			}
+		}
+
+		if fn.isLeafForMethod(method) {
+			allowed = append(allowed, method)
+		}
+	}
+
+	joined := strings.Join(allowed, ",")
+	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Accept", joined)
+		w.WriteHeader(http.StatusOK)
+	})
 }
