@@ -391,17 +391,21 @@ func TestAutomaticOptions(t *testing.T) {
 	l.Put("/api", fakeHandler())
 	l.Patch("/api", fakeHandler())
 	l.Trace("/api", fakeHandler())
-
-	htest.New(t, l).Options("/api").Do().
+	test := htest.New(t, l)
+	test.Options("/api").Do().
 		ExpectStatus(http.StatusOK).
-		ExpectHeader("Accept", "POST,PUT,TRACE,OPTIONS,PATCH")
+		ExpectHeader("Accept", "POST,PUT,TRACE,PATCH,OPTIONS")
+
+	test.Options("/404").Do().
+		ExpectStatus(http.StatusNotFound).
+		ExpectHeader("Accept", "")
 
 	// Allow custom options handler
 	l.Options("/api", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Batman", "Robin")
 		w.WriteHeader(http.StatusFound)
 	}))
-	htest.New(t, l).Options("/api").Do().
+	test.Options("/api").Do().
 		ExpectStatus(http.StatusFound).
 		ExpectHeader("Batman", "Robin")
 }

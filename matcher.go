@@ -58,7 +58,6 @@ func (d *radixMatcher) automaticOptionsHandler(c *Context, path string) Handler 
 	var fn *node // Node already found (to avoid calling too many times findNode)
 	for _, method := range allowedHTTPMethods {
 		if method == OPTIONS {
-			allowed = append(allowed, OPTIONS)
 			continue
 		}
 
@@ -75,6 +74,12 @@ func (d *radixMatcher) automaticOptionsHandler(c *Context, path string) Handler 
 			allowed = append(allowed, method)
 		}
 	}
+
+	if len(allowed) == 0 { // There is no method allowed
+		return nil
+	}
+
+	allowed = append(allowed, OPTIONS)
 
 	joined := strings.Join(allowed, ",")
 	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
