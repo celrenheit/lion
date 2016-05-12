@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 
@@ -97,4 +98,8 @@ func cleanPath(p string) string {
 		return newpath + "/"
 	}
 	return newpath
+}
+
+func panicl(format string, args ...interface{}) {
+	panic(fmt.Sprintf("lion: "+format, args...))
 }

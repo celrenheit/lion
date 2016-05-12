@@ -222,8 +222,6 @@ func (r *Router) UseHandlerFunc(fn HandlerFunc) {
 
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
 func (r *Router) Handle(method, pattern string, handler Handler) {
-	validatePattern(pattern)
-
 	var p string
 	if !r.isRoot() && pattern == "/" && r.pattern != "" {
 		p = r.pattern
@@ -442,7 +440,7 @@ func (r *Router) hasNamed(name string) bool {
 }
 
 func validatePattern(pattern string) {
-	if len(pattern) > 0 && pattern[0] != '/' {
+	if len(pattern) == 0 || pattern[0] != '/' {
 		panic("path must start with '/' in path '" + pattern + "'")
 	}
 }

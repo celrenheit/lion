@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -34,6 +35,7 @@ func TestRouteMatching(t *testing.T) {
 	helloContactByPersonAndPathHandler := fakeHandler()
 	extensionHandler := fakeHandler()
 	usernameHandler := fakeHandler()
+	mailAtHandler := fakeHandler()
 	wildcardHandler := fakeHandler()
 	userProfileHandler := fakeHandler()
 	userSuperHandler := fakeHandler()
@@ -62,6 +64,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
 		{Pattern: "/@:username", Handler: usernameHandler},
+		{Pattern: "/mail@:domain", Handler: mailAtHandler},
 		{Pattern: "/static/*", Handler: wildcardHandler},
 		{Pattern: "/users/:userID/profile", Handler: userProfileHandler},
 		{Pattern: "/users/super/*", Handler: userSuperHandler},
@@ -95,6 +98,7 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "path": "folder/subfolder/file"}},
 		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: M{"file": "batman", "ext": "jpg"}},
 		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: M{"username": "celrenheit"}},
+		{Input: "/mail@test.com", ExpectedHandler: mailAtHandler, ExpectedParams: M{"domain": "test.com"}},
 		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
 		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: M{"userID": "123"}},
 		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: M{"*": "123/okay/yes"}},
@@ -385,6 +389,60 @@ func TestStaticAndWildcardTriggersPanic(t *testing.T) {
 	}
 }
 
+func TestValidation(t *testing.T) {
+	l := New()
+	l.Get("/api/:key", fakeHandler())
+	recv := catchPanic(func() {
+		l.Get("/api/:key/picture/:key", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for duplicated parameter names")
+	}
+	l = New()
+	recv = catchPanic(func() {
+		l.Get("api2", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for path not starting with '/'")
+	}
+
+	recv = catchPanic(func() {
+		l.Group("api3")
+	})
+	if recv == nil {
+		t.Error("Should panic for group's pattern not starting with '/'")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("BATMAN", "/api", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for invalid http method")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("", "/api2", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for empty http method")
+	}
+
+	recv = catchPanic(func() {
+		l.Handle("GET", "", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should panic for empty pattern")
+	}
+
+	recv = catchPanic(func() {
+		l.Get("/emptypname/:", fakeHandler())
+	})
+
+	if recv == nil {
+		t.Error("Should panic for an unnamed parameter")
+	}
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -395,10 +453,17 @@ func catchPanic(fn func()) (recv interface{}) {
 	return
 }
 
-type fakeHandlerType struct{}
+// TODO: Find a better way to compare handlers that using a random token
+type fakeHandlerType struct{ t string }
 
 func (f *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
 
 func fakeHandler() Handler {
-	return new(fakeHandlerType)
+	return &fakeHandlerType{t: randToken()}
+}
+
+func randToken() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
