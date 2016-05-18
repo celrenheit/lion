@@ -142,6 +142,29 @@ func (n *node) addRoute(method, pattern string, handler Handler) {
 			pos = len(search)
 		}
 
+		///// Check conflicting param names
+		var (
+			xpattern string
+			pname    string
+		)
+
+		xpattern = search[:pos]
+
+		// Find parameter name
+		if child.nodeType == wildcard {
+			pname = "*"
+			if len(xpattern) > 1 {
+				pname = xpattern[1:]
+			}
+		} else {
+			pname = xpattern[1:]
+		}
+
+		if pname != child.pname {
+			panicl("Conflicting parameter name '%s' with '%s' for pattern: '%s'", child.pname, pname, n.pattern+pattern)
+		}
+		///// End check
+
 		search = search[pos:]
 
 		child.addRoute(method, search, handler)

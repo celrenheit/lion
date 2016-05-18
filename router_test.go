@@ -316,6 +316,44 @@ func TestEmptyRouter(t *testing.T) {
 	htest.New(t, l).Get("/").Do().ExpectStatus(http.StatusNotFound)
 }
 
+func TestConflictingParamNames(t *testing.T) {
+	l := New()
+
+	l.Get("/artistas/:Anything/discografia/:DNSDiscography/", fakeHandler())
+	recv := catchPanic(func() {
+		l.Get("/artistas/:DNS/", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should have detected a conflicting parameter name")
+	}
+
+	l = New()
+
+	l.Get("/artistas/:DNS/", fakeHandler())
+	recv = catchPanic(func() {
+		l.Get("/artistas/:Anything/discografia/:DNSDiscography/", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should have detected a conflicting parameter name")
+	}
+
+	l.Get("/wild/*test", fakeHandler())
+	recv = catchPanic(func() {
+		l.Get("/wild/*different", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should have detected a conflicting parameter name")
+	}
+
+	l.Get("/wildstar/*", fakeHandler())
+	recv = catchPanic(func() {
+		l.Get("/wildstar/*different", fakeHandler())
+	})
+	if recv == nil {
+		t.Error("Should have detected a conflicting parameter name")
+	}
+}
+
 func TestServeFiles(t *testing.T) {
 	cwd, _ := os.Getwd()
 	// Temporary directory
