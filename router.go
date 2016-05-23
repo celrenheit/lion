@@ -389,7 +389,7 @@ func (r *Router) Run(addr ...string) {
 
 	if len(addr) == 0 {
 		if p := os.Getenv("PORT"); p != "" {
-			a = p
+			a = ":" + p
 		} else {
 			a = ":3000"
 		}
