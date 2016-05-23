@@ -32,7 +32,7 @@ func Classic() *Router {
 
 var lionLogger = log.New(os.Stdout, lionColor("[lion]")+" ", log.Ldate|log.Ltime)
 
-// Logger is a middlewares that logs incomming http requests
+// Logger is a middlewares that logs incoming http requests
 type Logger struct {
 	*log.Logger
 }

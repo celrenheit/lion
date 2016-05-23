@@ -365,6 +365,9 @@ func TestServeFiles(t *testing.T) {
 
 	// Temporary file in the Temporary directory created previously
 	f, err := ioutil.TempFile(dir, "")
+	if err != nil {
+		t.Error(err)
+	}
 	f.WriteString("Lion")
 	f.Close()
 

@@ -316,7 +316,7 @@ func (r *Router) ServeFiles(base string, root http.FileSystem) {
 	r.HeadH(pattern, fileServer)
 }
 
-// ServeFile serve a specfic file located at the passed path
+// ServeFile serve a specific file located at the passed path
 //
 // 	l := New()
 // 	l.ServeFile("/robots.txt", "path/to/robots.txt")
