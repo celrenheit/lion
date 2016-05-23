@@ -1,4 +1,4 @@
-# Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+# Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/celrenheit/lion?style=flat-square)](https://goreportcard.com/report/github.com/celrenheit/lion)
 
 Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
 
