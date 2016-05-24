@@ -238,6 +238,7 @@ func (n *node) findNode(c *Context, method, path string) (*node, *Context) {
 	prev := n
 	prevsearch := ""
 	previ := 0
+	prevparam := ""
 
 LOOP:
 	for {
@@ -256,6 +257,11 @@ LOOP:
 					root = prev
 					search = prevsearch
 					i = previ
+
+					// Delete previous param
+					if prevparam != "" {
+						c.delete(prevparam)
+					}
 				}
 				continue
 			}
@@ -292,6 +298,8 @@ LOOP:
 					c.addParam(xn.pname, xsearch[:p])
 				}
 
+				prevparam = xn.pname // Stores the previous param name
+
 				xsearch = xsearch[p:]
 			} else if strings.HasPrefix(xsearch, xn.pattern) {
 				xsearch = xsearch[len(xn.pattern):]
@@ -310,6 +318,7 @@ LOOP:
 			search = xsearch
 
 			previ = i
+
 			continue LOOP // Search for next node (xn)
 		}
 

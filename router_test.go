@@ -133,6 +133,10 @@ func TestRouteMatching(t *testing.T) {
 			parent: context.TODO(),
 		}, req)
 
+		if len(test.ExpectedParams) != len(c.keys) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.keys), c.toMap(), test.Input)
+		}
+
 		// Compare params
 		for k, v := range test.ExpectedParams {
 			actual := Param(c, k)

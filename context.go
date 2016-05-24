@@ -71,10 +71,37 @@ func (p *Context) ParamOk(key string) (string, bool) {
 	return "", false
 }
 
+func (p *Context) toMap() M {
+	m := M{}
+	for i := range p.keys {
+		m[p.keys[i]] = p.values[i]
+	}
+	return m
+}
+
 func (p *Context) reset() {
 	p.keys = p.keys[:0]
 	p.values = p.values[:0]
 	p.parent = nil
+}
+
+func (p *Context) delete(key string) {
+	i := p.indexOf(key)
+	if i < 0 {
+		panicl("Cannot remove unknown key '%s' from context", key)
+	}
+
+	p.keys = append(p.keys[:i], p.keys[i+1:]...)
+	p.values = append(p.values[:i], p.values[i+1:]...)
+}
+
+func (p *Context) indexOf(key string) int {
+	for i := len(p.keys) - 1; i >= 0; i-- {
+		if p.keys[i] == key {
+			return i
+		}
+	}
+	return -1
 }
 
 // C returns a Context based on a context.Context passed. If it does not convert to Context, it creates a new one with the context passed as argument.
