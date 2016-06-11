@@ -42,7 +42,7 @@ func (p *Context) Value(key interface{}) interface{} {
 	return p.parent.Value(key)
 }
 
-func (p *Context) addParam(key, val string) {
+func (p *Context) AddParam(key, val string) {
 	p.keys = append(p.keys, key)
 	p.values = append(p.values, val)
 }
@@ -79,13 +79,13 @@ func (p *Context) toMap() M {
 	return m
 }
 
-func (p *Context) reset() {
+func (p *Context) Reset() {
 	p.keys = p.keys[:0]
 	p.values = p.values[:0]
 	p.parent = nil
 }
 
-func (p *Context) delete(key string) {
+func (p *Context) Remove(key string) {
 	i := p.indexOf(key)
 	if i < 0 {
 		panicl("Cannot remove unknown key '%s' from context", key)

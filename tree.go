@@ -260,7 +260,7 @@ LOOP:
 
 					// Delete previous param
 					if prevparam != "" {
-						c.delete(prevparam)
+						c.Remove(prevparam)
 					}
 				}
 				continue
@@ -293,9 +293,9 @@ LOOP:
 				}
 
 				if xn.nodeType == wildcard {
-					c.addParam(xn.pname, xsearch)
+					c.AddParam(xn.pname, xsearch)
 				} else {
-					c.addParam(xn.pname, xsearch[:p])
+					c.AddParam(xn.pname, xsearch[:p])
 				}
 
 				prevparam = xn.pname // Stores the previous param name

@@ -281,7 +281,7 @@ func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.
 		r.notFound(ctx, w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
-	ctx.reset()
+	ctx.Reset()
 	r.pool.Put(ctx)
 }
 
