@@ -12,8 +12,6 @@ import (
 
 // Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
-	rm RegisterMatcher
-
 	router *Router
 
 	middlewares Middlewares
@@ -29,13 +27,16 @@ type Router struct {
 	pool sync.Pool
 
 	namedMiddlewares map[string]Middlewares
+
+	host   string
+	hostrm *hostMatcher
 }
 
 // New creates a new router instance
 func New(mws ...Middleware) *Router {
 	r := &Router{
+		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
-		rm:               newRadixMatcher(),
 		namedMiddlewares: make(map[string]Middlewares),
 	}
 	r.pool.New = func() interface{} {
@@ -43,7 +44,7 @@ func New(mws ...Middleware) *Router {
 	}
 	r.router = r
 	r.Use(mws...)
-	return r
+	return r.Host("*" + defaultAnyHostKey)
 }
 
 // Group creates a subrouter with parent pattern provided.
@@ -56,13 +57,18 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 
 	nr := &Router{
 		router:           r,
-		rm:               r.rm,
+		hostrm:           r.hostrm,
 		pattern:          p,
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
 	}
 	nr.Use(mws...)
 	return nr
+}
+
+func (r *Router) Host(host string) *Router {
+	r.host = host
+	return r
 }
 
 // Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
@@ -231,7 +237,8 @@ func (r *Router) Handle(method, pattern string, handler Handler) {
 
 	built := r.buildMiddlewares(handler)
 	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{method, pattern, built})
-	r.router.rm.Register(method, p, built)
+	rm := r.router.hostrm.Register(r.host)
+	rm.Register(method, p, built)
 }
 
 type registeredHandler struct {
@@ -275,7 +282,7 @@ func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.
 	ctx := r.pool.Get().(*Context)
 	ctx.parent = c
 
-	if ctx, h := r.router.rm.Match(ctx, req); h != nil {
+	if h := r.router.hostrm.Match(ctx, req); h != nil {
 		h.ServeHTTPC(ctx, w, req)
 	} else {
 		r.notFound(ctx, w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
