@@ -426,7 +426,7 @@ v2.GetFunc("/somepath", gettingFromV2)
 l.Run()
 ```
 
-### Mouting a router into a base path
+### Mounting a router into a base path
 
 
 ```go
