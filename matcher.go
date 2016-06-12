@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/celrenheit/pmatch"
+	"github.com/celrenheit/lion/matcher"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
@@ -21,12 +21,12 @@ var _ RegisterMatcher = (*radixMatcher)(nil)
 
 type radixMatcher struct {
 	root     *node
-	matcher  pmatch.Matcher
+	matcher  matcher.Matcher
 	tagsPool sync.Pool
 }
 
 func newRadixMatcher() *radixMatcher {
-	cfg := &pmatch.Config{
+	cfg := &matcher.Config{
 		ParamChar:        ':',
 		WildcardChar:     '*',
 		Separators:       "/.",
@@ -35,7 +35,7 @@ func newRadixMatcher() *radixMatcher {
 
 	r := &radixMatcher{
 		root:    &node{},
-		matcher: pmatch.Custom(cfg),
+		matcher: matcher.Custom(cfg),
 	}
 	return r
 }
@@ -47,7 +47,7 @@ func (d *radixMatcher) Register(method, pattern string, handler Handler) {
 		d.root = &node{}
 	}
 
-	d.matcher.Set(pattern, handler, pmatch.Tags{method})
+	d.matcher.Set(pattern, handler, matcher.Tags{method})
 
 	d.postvalidation(method, pattern)
 }
@@ -110,7 +110,7 @@ func isInStringSlice(slice []string, expected string) bool {
 	return false
 }
 
-func (gs *methodsHandlers) Set(value interface{}, tags pmatch.Tags) {
+func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
 	if len(tags) != 1 {
 		panicl("Length != 1")
 	}
@@ -131,7 +131,7 @@ func (gs *methodsHandlers) Set(value interface{}, tags pmatch.Tags) {
 	gs.addHandler(method, handler)
 }
 
-func (gs *methodsHandlers) Get(tags pmatch.Tags) interface{} {
+func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
 	if len(tags) != 1 {
 		panicl("No method")
 	}
@@ -191,13 +191,13 @@ func (gs *methodsHandlers) getHandler(method string) Handler {
 
 type creator struct{}
 
-func (c *creator) New() pmatch.GetSetter {
+func (c *creator) New() matcher.GetSetter {
 	return &methodsHandlers{}
 }
 
 //// Tags Item
 type tagsItem struct {
-	tags pmatch.Tags
+	tags matcher.Tags
 }
 
 func (ti *tagsItem) reset() {

@@ -5,17 +5,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/celrenheit/pmatch"
+	"github.com/celrenheit/lion/matcher"
 )
 
-const defaultAnyHostKey = "liondefaulthostname"
+const defaultAnyHostKey = "lionDefaultAnyHostKey"
 
 type hostMatcher struct {
-	matcher pmatch.Matcher
+	matcher matcher.Matcher
 }
 
 func newHostMatcher() *hostMatcher {
-	cfg := &pmatch.Config{
+	cfg := &matcher.Config{
 		ParamChar:        ':',
 		WildcardChar:     '*',
 		Separators:       ".",
@@ -23,7 +23,7 @@ func newHostMatcher() *hostMatcher {
 		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
-		matcher: pmatch.Custom(cfg),
+		matcher: matcher.Custom(cfg),
 	}
 }
 
@@ -64,19 +64,19 @@ type hostStore struct {
 	rm RegisterMatcher
 }
 
-func (hs *hostStore) Set(value interface{}, tags pmatch.Tags) {
+func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
 	if rg, ok := value.(*registererRMGrabber); ok {
 		rg.rm = hs.rm
 	}
 }
 
-func (hs *hostStore) Get(tags pmatch.Tags) interface{} {
+func (hs *hostStore) Get(tags matcher.Tags) interface{} {
 	return hs.rm
 }
 
 type hscreator struct{}
 
-func (c *hscreator) New() pmatch.GetSetter {
+func (c *hscreator) New() matcher.GetSetter {
 	return &hostStore{
 		rm: newRadixMatcher(),
 	}
