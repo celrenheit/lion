@@ -61,6 +61,7 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 		pattern:          p,
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
+		host:             r.host,
 	}
 	nr.Use(mws...)
 	return nr
