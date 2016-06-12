@@ -160,6 +160,70 @@ func TestRouteMatching(t *testing.T) {
 	}
 }
 
+func TestHostMatcher(t *testing.T) {
+	hm := newHostMatcher()
+
+	staticH := fakeHandler()
+	demoH := fakeHandler()
+	wildH := fakeHandler()
+
+	toRegister := []struct {
+		pattern string
+		handler Handler
+	}{
+		{pattern: "test.batman.com", handler: staticH},
+		{pattern: ":demo.batman.com", handler: demoH},
+		{pattern: "*.batman.com", handler: wildH},
+	}
+
+	for _, register := range toRegister {
+		rm := hm.Register(register.pattern)
+		rm.Register(GET, "/", register.handler)
+	}
+
+	tests := []struct {
+		input           string
+		expectedParams  M
+		expectedHandler Handler
+	}{
+		{
+			input: "test.batman.com", expectedParams: M{},
+			expectedHandler: staticH,
+		},
+		{
+			input: "admin.batman.com", expectedParams: M{"demo": "admin"},
+			expectedHandler: demoH,
+		},
+		{
+			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
+			expectedHandler: wildH,
+		},
+	}
+
+	for _, test := range tests {
+		req, _ := http.NewRequest("GET", "http://"+test.input, nil)
+		c := NewContext()
+		h := hm.Match(c, req)
+
+		if len(test.expectedParams) != len(c.keys) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v)", len(test.expectedParams), len(c.keys), c.values)
+		}
+
+		for k, v := range test.expectedParams {
+			actual := Param(c, k)
+			if actual != v {
+				t.Errorf("Expected key %s to equal %s but got %s for host: %s", cyan(k), green(v), red(actual), test.input)
+			}
+		}
+
+		// Compare handlers
+		if fmt.Sprintf("%v", h) != fmt.Sprintf("%v", test.expectedHandler) {
+			t.Errorf("Handler not match for %s: expected %v but got %v", test.input, fmt.Sprintf("%v", h), fmt.Sprintf("%v", test.expectedHandler))
+		}
+	}
+
+}
+
 type anyHandler struct{}
 
 func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {

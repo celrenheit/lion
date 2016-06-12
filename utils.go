@@ -105,7 +105,7 @@ func panicl(format string, args ...interface{}) {
 	panic(fmt.Sprintf("lion: "+format, args...))
 }
 
-func reverseHost(pattern string) string {
+func reverseHostStdLib(pattern string) string {
 	reversed := strings.Split(pattern, ".")
 	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
 		reversed[i], reversed[j] = reversed[j], reversed[i]

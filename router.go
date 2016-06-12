@@ -44,7 +44,7 @@ func New(mws ...Middleware) *Router {
 	}
 	r.router = r
 	r.Use(mws...)
-	return r.Host("*" + defaultAnyHostKey)
+	return r
 }
 
 // Group creates a subrouter with parent pattern provided.

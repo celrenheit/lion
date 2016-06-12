@@ -2,6 +2,8 @@ package lion
 
 import (
 	"net/http"
+	"strings"
+	"sync"
 
 	"github.com/celrenheit/pmatch"
 )
@@ -16,8 +18,9 @@ func newHostMatcher() *hostMatcher {
 	cfg := &pmatch.Config{
 		ParamChar:        ':',
 		WildcardChar:     '*',
-		Separators:       "/.",
+		Separators:       ".",
 		GetSetterCreator: &hscreator{},
+		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
 		matcher: pmatch.Custom(cfg),
@@ -77,4 +80,68 @@ func (c *hscreator) New() pmatch.GetSetter {
 	return &hostStore{
 		rm: newRadixMatcher(),
 	}
+}
+
+type hostParamTransformer struct {
+	splittedStringPool sync.Pool
+}
+
+func newHostParamTransformer() *hostParamTransformer {
+	return &hostParamTransformer{
+		splittedStringPool: sync.Pool{
+			New: func() interface{} {
+				return &splittedStringItem{}
+			},
+		},
+	}
+}
+
+func (hpt *hostParamTransformer) Transform(input string) string {
+	reversedItem := hpt.split(input, ".")
+	reversed := reversedItem.slice
+	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
+		reversed[i], reversed[j] = reversed[j], reversed[i]
+	}
+	output := strings.Join(reversed, ".")
+	hpt.splittedStringPool.Put(reversedItem)
+	return output
+}
+
+// Taken from Go's standard library
+// https://github.com/golang/go/blob/master/src/strings/strings.go#L237-L261
+func (hpt *hostParamTransformer) split(s, sep string) *splittedStringItem {
+	si := hpt.splittedStringPool.Get().(*splittedStringItem)
+	n := strings.Count(s, sep) + 1
+	c := sep[0]
+	start := 0
+
+	var a []string
+	if cap(si.slice) == n {
+		a = si.slice
+	} else {
+		a = make([]string, n)
+	}
+
+	na := 0
+	for i := 0; i+len(sep) <= len(s) && na+1 < n; i++ {
+		if s[i] == c && (len(sep) == 1 || s[i:i+len(sep)] == sep) {
+			a[na] = s[start:i]
+			na++
+			start = i + len(sep)
+			i += len(sep) - 1
+		}
+	}
+	a[na] = s[start:]
+	si.slice = a[0 : na+1]
+	return si
+}
+
+type splittedStringItem struct {
+	slice []string
+}
+
+var hostReverser = newHostParamTransformer()
+
+func reverseHost(input string) string {
+	return hostReverser.Transform(input)
 }
