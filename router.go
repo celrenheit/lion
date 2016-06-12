@@ -67,8 +67,22 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	return nr
 }
 
-func (r *Router) Host(host string) *Router {
-	r.host = host
+// Host sets the host for the current router instances.
+// You can use patterns in the same way they are currently used for routes but in reverse order (params on the left)
+// The following patterns works:
+/*
+	admin.example.com			will match			admin.example.com
+	:username.blog.com			will match			messi.blog.com
+						will not match			my.awesome.blog.com
+	*.example.com				will match			my.admin.example.com
+
+The following patterns are not allowed:
+	mail.*
+	*
+*/
+func (r *Router) Host(hostpattern string) *Router {
+	r.host = hostpattern
+	r.hostrm.Register(hostpattern)
 	return r
 }
 

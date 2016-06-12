@@ -43,6 +43,10 @@ func TestHostMatcher(t *testing.T) {
 			expectedHandler: demoH,
 		},
 		{
+			input: "forever.batman.com", expectedParams: M{"demo": "forever"},
+			expectedHandler: demoH,
+		},
+		{
 			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
 			expectedHandler: wildH,
 		},
@@ -76,6 +80,9 @@ func TestBasicGroupHost(t *testing.T) {
 	test := htest.New(t, mux)
 	mux.Get("/global", fakeHandler())
 
+	mux.Host("*.blog.com")
+	mux.Get("/posts", fakeHandler())
+
 	mux.Host("admin.example.com")
 	mux.Get("/", fakeHandler())
 
@@ -93,4 +100,6 @@ func TestBasicGroupHost(t *testing.T) {
 
 	test.Get("http://admin.example.com/users/add").Do().ExpectStatus(http.StatusNotFound)
 	test.Get("/users/add").Do().ExpectStatus(http.StatusOK)
+
+	test.Get("http://my.awesome.blog.com/posts").Do().ExpectStatus(http.StatusOK)
 }
