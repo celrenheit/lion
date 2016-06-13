@@ -35,6 +35,10 @@ func (t *tree) Separators() string {
 	return t.cfg.Separators
 }
 
+func (t *tree) AllChars() string {
+	return string([]byte{t.ParamChar(), t.WildcardChar()})
+}
+
 func (t *tree) setValue(n *node, value interface{}, tags Tags) {
 	n.values = value
 	n.tags = tags
@@ -262,14 +266,14 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 
 func (tree *tree) addChild(n *node, child *node, values interface{}, tags Tags) {
 	search := child.pattern
-	pos := strings.IndexAny(search, ":*")
+	pos := strings.IndexAny(search, tree.AllChars())
 
 	ndtype := static
 	if pos >= 0 {
 		switch search[pos] {
-		case ':':
+		case tree.ParamChar():
 			ndtype = param
-		case '*':
+		case tree.WildcardChar():
 			ndtype = wildcard
 		}
 	}
