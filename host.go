@@ -78,7 +78,7 @@ type hscreator struct{}
 
 func (c *hscreator) New() matcher.GetSetter {
 	return &hostStore{
-		rm: newRadixMatcher(),
+		rm: newPathMatcher(),
 	}
 }
 

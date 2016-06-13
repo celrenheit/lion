@@ -17,14 +17,14 @@ type RegisterMatcher interface {
 ///												RADIX 																				 ///
 ////////////////////////////////////////////////////////////////////////////
 
-var _ RegisterMatcher = (*radixMatcher)(nil)
+var _ RegisterMatcher = (*pathMatcher)(nil)
 
-type radixMatcher struct {
+type pathMatcher struct {
 	matcher  matcher.Matcher
 	tagsPool sync.Pool
 }
 
-func newRadixMatcher() *radixMatcher {
+func newPathMatcher() *pathMatcher {
 	cfg := &matcher.Config{
 		ParamChar:        ':',
 		WildcardChar:     '*',
@@ -32,19 +32,19 @@ func newRadixMatcher() *radixMatcher {
 		GetSetterCreator: &creator{},
 	}
 
-	r := &radixMatcher{
+	r := &pathMatcher{
 		matcher: matcher.Custom(cfg),
 	}
 	return r
 }
 
-func (d *radixMatcher) Register(method, pattern string, handler Handler) {
+func (d *pathMatcher) Register(method, pattern string, handler Handler) {
 	d.prevalidation(method, pattern)
 
 	d.matcher.Set(pattern, handler, matcher.Tags{method})
 }
 
-func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
+func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 	p := cleanPath(r.URL.Path)
 
 	ti := grabTagsItem()
@@ -61,7 +61,7 @@ func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 	return c, nil
 }
 
-func (d *radixMatcher) prevalidation(method, pattern string) {
+func (d *pathMatcher) prevalidation(method, pattern string) {
 	if len(pattern) == 0 || pattern[0] != '/' {
 		panicl("path must begin with '/' in path '" + pattern + "'")
 	}
