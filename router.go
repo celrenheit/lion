@@ -50,7 +50,7 @@ func New(mws ...Middleware) *Router {
 // Group creates a subrouter with parent pattern provided.
 func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	p := r.pattern + pattern
-	if pattern == "/" && r.pattern != "/" {
+	if pattern == "/" && r.pattern != "/" && r.pattern != "" {
 		p = r.pattern
 	}
 	validatePattern(p)
@@ -251,22 +251,25 @@ func (r *Router) Handle(method, pattern string, handler Handler) {
 	}
 
 	built := r.buildMiddlewares(handler)
-	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{method, pattern, built})
+	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{r.host, method, pattern, built})
 	rm := r.router.hostrm.Register(r.host)
 	rm.Register(method, p, built)
 }
 
 type registeredHandler struct {
-	method, pattern string
-	handler         Handler
+	host, method, pattern string
+	handler               Handler
 }
 
 // Mount mounts a subrouter at the provided pattern
 func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
-	sub := r.Group(pattern, mws...)
+	host := r.host
 	for _, rh := range router.registeredHandlers {
-		sub.Handle(rh.method, rh.pattern, rh.handler)
+		r.Host(rh.host)
+		r.Handle(rh.method, path.Join(pattern, rh.pattern), rh.handler)
 	}
+	// Restore previous host
+	r.host = host
 }
 
 func (r *Router) buildMiddlewares(handler Handler) Handler {

@@ -103,3 +103,21 @@ func TestBasicGroupHost(t *testing.T) {
 
 	test.Get("http://my.awesome.blog.com/posts").Do().ExpectStatus(http.StatusOK)
 }
+
+func TestMountHost(t *testing.T) {
+	mux := New()
+	mux.Host("host1.com")
+	mux.Get("/first", fakeHandler())
+
+	second := New()
+	second.Host("host2.com")
+	second.Get("/second", fakeHandler())
+
+	mux.Mount("/", second)
+
+	test := htest.New(t, mux)
+	test.Get("http://host1.com/first").Do().ExpectStatus(http.StatusOK)
+	test.Get("http://host1.com/second").Do().ExpectStatus(http.StatusNotFound)
+	test.Get("http://host2.com/first").Do().ExpectStatus(http.StatusNotFound)
+	test.Get("http://host2.com/second").Do().ExpectStatus(http.StatusOK)
+}
