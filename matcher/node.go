@@ -2,21 +2,6 @@ package matcher
 
 import "sort"
 
-// HTTP methods constants
-const (
-	GET     = "GET"
-	HEAD    = "HEAD"
-	POST    = "POST"
-	PUT     = "PUT"
-	DELETE  = "DELETE"
-	TRACE   = "TRACE"
-	OPTIONS = "OPTIONS"
-	CONNECT = "CONNECT"
-	PATCH   = "PATCH"
-)
-
-var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
-
 type nodeType uint8
 
 const (

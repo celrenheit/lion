@@ -20,7 +20,6 @@ type RegisterMatcher interface {
 var _ RegisterMatcher = (*radixMatcher)(nil)
 
 type radixMatcher struct {
-	root     *node
 	matcher  matcher.Matcher
 	tagsPool sync.Pool
 }
@@ -34,7 +33,6 @@ func newRadixMatcher() *radixMatcher {
 	}
 
 	r := &radixMatcher{
-		root:    &node{},
 		matcher: matcher.Custom(cfg),
 	}
 	return r
@@ -43,13 +41,7 @@ func newRadixMatcher() *radixMatcher {
 func (d *radixMatcher) Register(method, pattern string, handler Handler) {
 	d.prevalidation(method, pattern)
 
-	if d.root == nil {
-		d.root = &node{}
-	}
-
 	d.matcher.Set(pattern, handler, matcher.Tags{method})
-
-	d.postvalidation(method, pattern)
 }
 
 func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
@@ -80,27 +72,6 @@ func (d *radixMatcher) prevalidation(method, pattern string) {
 	}
 }
 
-func (d *radixMatcher) postvalidation(method, pattern string) {
-	// Find duplicate parameter names
-	d.findDuplicateParamNames(d.root, method, pattern, []string{})
-}
-
-func (d *radixMatcher) findDuplicateParamNames(n *node, method, pattern string, pnames []string) {
-	for _, children := range n.children {
-		for _, child := range children {
-			if child.nodeType > static && child.pname == "" {
-				panicl(`cannot use an unnamed parameter for  %s`, pattern)
-			}
-
-			if len(child.pname) > 0 && isInStringSlice(pnames, child.pname) {
-				panicl("lion: Duplicate parameter %s for %s", child.pname, pattern)
-			}
-
-			d.findDuplicateParamNames(child, method, pattern, append(pnames, child.pname))
-		}
-	}
-}
-
 func isInStringSlice(slice []string, expected string) bool {
 	for _, val := range slice {
 		if val == expected {
@@ -108,6 +79,18 @@ func isInStringSlice(slice []string, expected string) bool {
 		}
 	}
 	return false
+}
+
+type methodsHandlers struct {
+	get     Handler
+	head    Handler
+	post    Handler
+	put     Handler
+	delete  Handler
+	trace   Handler
+	options Handler
+	connect Handler
+	patch   Handler
 }
 
 func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {

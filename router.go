@@ -10,6 +10,21 @@ import (
 	"golang.org/x/net/context"
 )
 
+// HTTP methods constants
+const (
+	GET     = "GET"
+	HEAD    = "HEAD"
+	POST    = "POST"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	TRACE   = "TRACE"
+	OPTIONS = "OPTIONS"
+	CONNECT = "CONNECT"
+	PATCH   = "PATCH"
+)
+
+var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
+
 // Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
 	router *Router

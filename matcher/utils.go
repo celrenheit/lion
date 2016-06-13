@@ -22,6 +22,51 @@ func longestPrefix(s1, s2 string) int {
 	return i
 }
 
+func stringsIndexAny(str, chars string) int {
+	ls := len(str)
+	lc := len(chars)
+
+	for i := 0; i < ls; i++ {
+		s := str[i]
+		for j := 0; j < lc; j++ {
+			if s == chars[j] {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func stringsIndex(str string, char byte) int {
+	ls := len(str)
+
+	for i := 0; i < ls; i++ {
+		if str[i] == char {
+			return i
+		}
+	}
+	return -1
+}
+
+func stringsHasPrefix(str, prefix string) bool {
+	// ls := len(str)
+	sl := len(str)
+	pl := len(prefix)
+	if sl < pl {
+		return false
+	}
+	i := 0
+	for ; i < pl; i++ {
+		if str[i] != prefix[i] {
+			break
+		}
+	}
+	if i == pl {
+		return true
+	}
+	return false
+}
+
 func panicm(format string, args ...interface{}) {
 	panic(fmt.Sprintf("lion: "+format, args...))
 }
