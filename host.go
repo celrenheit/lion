@@ -8,10 +8,15 @@ import (
 	"github.com/celrenheit/lion/matcher"
 )
 
-const defaultAnyHostKey = "lionDefaultAnyHostKey"
+const (
+	defaultAnyHostKey     = "lionDefaultAnyHostKey"
+	defaultAnyHostPattern = "*" + defaultAnyHostKey
+)
 
 type hostMatcher struct {
-	matcher matcher.Matcher
+	matcher   matcher.Matcher
+	defaultRM RegisterMatcher
+	multihost bool
 }
 
 func newHostMatcher() *hostMatcher {
@@ -23,7 +28,8 @@ func newHostMatcher() *hostMatcher {
 		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
-		matcher: matcher.Custom(cfg),
+		matcher:   matcher.Custom(cfg),
+		defaultRM: newPathMatcher(),
 	}
 }
 
@@ -33,28 +39,45 @@ type registererRMGrabber struct {
 
 func (hm *hostMatcher) Register(pattern string) RegisterMatcher {
 	host := pattern
-	if host == "" {
-		host = "*" + defaultAnyHostKey
+
+	// Switch to multihost
+	if !hm.multihost && host != "" {
+		hm.multihost = true
+		hm.matcher.Set(reverseHost(defaultAnyHostPattern), hm.defaultRM, nil)
 	}
 
-	rg := &registererRMGrabber{}
-	reversedHost := reverseHost(host)
-	hm.matcher.Set(reversedHost, rg, nil)
-	return rg.rm
+	if hm.multihost {
+
+		if host == "" {
+			host = defaultAnyHostPattern
+		}
+
+		rg := &registererRMGrabber{}
+		reversedHost := reverseHost(host)
+		hm.matcher.Set(reversedHost, rg, nil)
+		return rg.rm
+	} else {
+		return hm.defaultRM
+	}
 }
 
 func (hm *hostMatcher) Match(c *Context, req *http.Request) Handler {
-	reversedHost := reverseHost(req.Host)
-	value := hm.matcher.GetWithContext(c, reversedHost, nil)
-	// Delete wildcard param
-	// TODO: Skip this step for performance reasons
-	// (Maybe by adding a blacklisted or skiplisted params on host matcher)
-	if _, ok := c.ParamOk(defaultAnyHostKey); ok {
-		c.Remove(defaultAnyHostKey)
-	}
+	if hm.multihost {
+		reversedHost := reverseHost(req.Host)
+		value := hm.matcher.GetWithContext(c, reversedHost, nil)
+		// Delete wildcard param
+		// TODO: Skip this step for performance reasons
+		// (Maybe by adding a blacklisted or skiplisted params on host matcher)
+		if _, ok := c.ParamOk(defaultAnyHostKey); ok {
+			c.Remove(defaultAnyHostKey)
+		}
 
-	if rm, ok := value.(RegisterMatcher); ok {
-		_, h := rm.Match(c, req)
+		if rm, ok := value.(RegisterMatcher); ok {
+			_, h := rm.Match(c, req)
+			return h
+		}
+	} else {
+		_, h := hm.defaultRM.Match(c, req)
 		return h
 	}
 	return nil
@@ -65,6 +88,12 @@ type hostStore struct {
 }
 
 func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
+	// Overwrite RegisterMatcher
+	if rm, ok := value.(RegisterMatcher); ok {
+		hs.rm = rm
+	}
+
+	// Little hack to grab the pointer of the underlying RegisterMatcher
 	if rg, ok := value.(*registererRMGrabber); ok {
 		rg.rm = hs.rm
 	}
