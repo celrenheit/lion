@@ -14,14 +14,32 @@ func TestHostMatcher(t *testing.T) {
 	staticH := fakeHandler()
 	demoH := fakeHandler()
 	wildH := fakeHandler()
+	localhostH := fakeHandler()
+	staticPortH := fakeHandler()
+	portH := fakeHandler()
+	wildSubPortH := fakeHandler()
+	ipv4H := fakeHandler()
+	ipv4ParamH := fakeHandler()
+	ipv4WildH := fakeHandler()
+	ipv4WildParamH := fakeHandler()
 
 	toRegister := []struct {
 		pattern string
 		handler Handler
 	}{
 		{pattern: "test.batman.com", handler: staticH},
-		{pattern: ":demo.batman.com", handler: demoH},
+		{pattern: "$demo.batman.com", handler: demoH},
 		{pattern: "*.batman.com", handler: wildH},
+
+		{pattern: "localhost", handler: localhostH},
+		{pattern: "localhost:1234", handler: staticPortH},
+		{pattern: "localhost:$port", handler: portH},
+		{pattern: "*.localhost:$port", handler: wildSubPortH},
+
+		{pattern: "01.02.03.04", handler: ipv4H},
+		{pattern: "01.$second.03.04", handler: ipv4ParamH},
+		{pattern: "*.03.04", handler: ipv4WildH},
+		{pattern: "*.03.04:$port", handler: ipv4WildParamH},
 	}
 
 	for _, register := range toRegister {
@@ -50,6 +68,42 @@ func TestHostMatcher(t *testing.T) {
 			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
 			expectedHandler: wildH,
 		},
+
+		// Port
+		{
+			input: "localhost", expectedParams: emptyParams,
+			expectedHandler: localhostH,
+		},
+		{
+			input: "localhost:1234", expectedParams: emptyParams,
+			expectedHandler: staticPortH,
+		},
+		{
+			input: "localhost:3000", expectedParams: M{"port": "3000"},
+			expectedHandler: portH,
+		},
+		{
+			input: "test.sub.localhost:8080", expectedParams: M{"*": "test.sub", "port": "8080"},
+			expectedHandler: wildSubPortH,
+		},
+
+		// Ipv4
+		{
+			input: "01.02.03.04", expectedParams: emptyParams,
+			expectedHandler: ipv4H,
+		},
+		{
+			input: "01.99.03.04", expectedParams: M{"second": "99"},
+			expectedHandler: ipv4ParamH,
+		},
+		{
+			input: "192.168.03.04", expectedParams: M{"*": "192.168"},
+			expectedHandler: ipv4WildH,
+		},
+		{
+			input: "192.168.03.04:3000", expectedParams: M{"*": "192.168", "port": "3000"},
+			expectedHandler: ipv4WildParamH,
+		},
 	}
 
 	for _, test := range tests {
@@ -58,7 +112,7 @@ func TestHostMatcher(t *testing.T) {
 		h := hm.Match(c, req)
 
 		if len(test.expectedParams) != len(c.keys) {
-			t.Errorf("Length missmatch: expected %d but got %d (%v)", len(test.expectedParams), len(c.keys), c.values)
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.keys), c.toMap(), test.input)
 		}
 
 		for k, v := range test.expectedParams {
@@ -70,7 +124,7 @@ func TestHostMatcher(t *testing.T) {
 
 		// Compare handlers
 		if fmt.Sprintf("%v", h) != fmt.Sprintf("%v", test.expectedHandler) {
-			t.Errorf("Handler not match for %s: expected %v but got %v", test.input, fmt.Sprintf("%v", h), fmt.Sprintf("%v", test.expectedHandler))
+			t.Errorf("Handler not match for %s: expected %v but got %v", test.input, fmt.Sprintf("%v", test.expectedHandler), fmt.Sprintf("%v", h))
 		}
 	}
 }

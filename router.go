@@ -84,10 +84,11 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 
 // Host sets the host for the current router instances.
 // You can use patterns in the same way they are currently used for routes but in reverse order (params on the left)
+// 	NOTE: You have to use the '$' character instead of ':' for matching host parameters.
 // The following patterns works:
 /*
 	admin.example.com			will match			admin.example.com
-	:username.blog.com			will match			messi.blog.com
+	$username.blog.com			will match			messi.blog.com
 						will not match			my.awesome.blog.com
 	*.example.com				will match			my.admin.example.com
 

@@ -21,7 +21,7 @@ type hostMatcher struct {
 
 func newHostMatcher() *hostMatcher {
 	cfg := &matcher.Config{
-		ParamChar:        ':',
+		ParamChar:        '$',
 		WildcardChar:     '*',
 		Separators:       ".",
 		GetSetterCreator: &hscreator{},
