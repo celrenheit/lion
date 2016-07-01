@@ -54,11 +54,11 @@ func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 
 	putTagsItem(ti)
 
-	if handler, ok := h.(Handler); ok {
-		return c, handler
+	if h == nil {
+		return c, nil
 	}
 
-	return c, nil
+	return c, h.(Handler)
 }
 
 func (d *pathMatcher) prevalidation(method, pattern string) {
