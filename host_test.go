@@ -14,6 +14,7 @@ func TestHostMatcher(t *testing.T) {
 	staticH := fakeHandler()
 	demoH := fakeHandler()
 	wildH := fakeHandler()
+	tldPortH := fakeHandler()
 	localhostH := fakeHandler()
 	staticPortH := fakeHandler()
 	portH := fakeHandler()
@@ -30,6 +31,7 @@ func TestHostMatcher(t *testing.T) {
 		{pattern: "test.batman.com", handler: staticH},
 		{pattern: "$demo.batman.com", handler: demoH},
 		{pattern: "*.batman.com", handler: wildH},
+		{pattern: "batman.$tld:$port", handler: tldPortH},
 
 		{pattern: "localhost", handler: localhostH},
 		{pattern: "localhost:1234", handler: staticPortH},
@@ -67,6 +69,10 @@ func TestHostMatcher(t *testing.T) {
 		{
 			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
 			expectedHandler: wildH,
+		},
+		{
+			input: "batman.org:8080", expectedParams: M{"tld": "org", "port": "8080"},
+			expectedHandler: tldPortH,
 		},
 
 		// Port

@@ -23,7 +23,7 @@ func newHostMatcher() *hostMatcher {
 	cfg := &matcher.Config{
 		ParamChar:        '$',
 		WildcardChar:     '*',
-		Separators:       ".",
+		Separators:       ".:",
 		GetSetterCreator: &hscreator{},
 		ParamTransformer: newHostParamTransformer(),
 	}
