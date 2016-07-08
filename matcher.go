@@ -2,7 +2,6 @@ package lion
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/celrenheit/lion/matcher"
 )
@@ -20,8 +19,8 @@ type RegisterMatcher interface {
 var _ RegisterMatcher = (*pathMatcher)(nil)
 
 type pathMatcher struct {
-	matcher  matcher.Matcher
-	tagsPool sync.Pool
+	matcher matcher.Matcher
+	tags    matcher.Tags
 }
 
 func newPathMatcher() *pathMatcher {
@@ -34,6 +33,7 @@ func newPathMatcher() *pathMatcher {
 
 	r := &pathMatcher{
 		matcher: matcher.Custom(cfg),
+		tags:    matcher.Tags{""},
 	}
 	return r
 }
@@ -47,12 +47,9 @@ func (d *pathMatcher) Register(method, pattern string, handler Handler) {
 func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 	p := cleanPath(r.URL.Path)
 
-	ti := grabTagsItem()
-	ti.tags = append(ti.tags, r.Method)
+	d.tags[0] = r.Method
 
-	h := d.matcher.GetWithContext(c, p, ti.tags)
-
-	putTagsItem(ti)
+	h := d.matcher.GetWithContext(c, p, d.tags)
 
 	if h == nil {
 		return c, nil
@@ -176,29 +173,4 @@ type creator struct{}
 
 func (c *creator) New() matcher.GetSetter {
 	return &methodsHandlers{}
-}
-
-//// Tags Item
-type tagsItem struct {
-	tags matcher.Tags
-}
-
-func (ti *tagsItem) reset() {
-	ti.tags = ti.tags[:0]
-}
-
-var tagsItemPool = sync.Pool{
-	New: func() interface{} {
-		return &tagsItem{}
-	},
-}
-
-func grabTagsItem() *tagsItem {
-	return tagsItemPool.Get().(*tagsItem)
-}
-
-func putTagsItem(ti *tagsItem) {
-
-	ti.reset()
-	tagsItemPool.Put(ti)
 }
