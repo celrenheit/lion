@@ -2,8 +2,10 @@ package lion
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/celrenheit/lion/matcher"
+	"golang.org/x/net/context"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
@@ -52,6 +54,10 @@ func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 	h := d.matcher.GetWithContext(c, p, d.tags)
 
 	if h == nil {
+		if r.Method == OPTIONS {
+			hh := d.automaticOptionsHandler(c, r.URL.Path)
+			return c, hh
+		}
 		return c, nil
 	}
 
@@ -67,6 +73,33 @@ func (d *pathMatcher) prevalidation(method, pattern string) {
 	if !isInStringSlice(allowedHTTPMethods[:], method) {
 		panicl("lion: invalid http method => %s\n\tShould be one of %v", method, allowedHTTPMethods)
 	}
+}
+
+func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) Handler {
+	allowed := make([]string, 0, len(allowedHTTPMethods))
+	for _, method := range allowedHTTPMethods {
+		if method == OPTIONS {
+			continue
+		}
+
+		d.tags[0] = method
+		h := d.matcher.GetWithContext(c, path, d.tags)
+		if h != nil {
+			allowed = append(allowed, method)
+		}
+	}
+
+	if len(allowed) == 0 { // There is no method allowed
+		return nil
+	}
+
+	allowed = append(allowed, OPTIONS)
+
+	joined := strings.Join(allowed, ",")
+	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Accept", joined)
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 func isInStringSlice(slice []string, expected string) bool {
@@ -93,6 +126,7 @@ type methodsHandlers struct {
 func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
 	if len(tags) != 1 {
 		panicl("Length != 1")
+
 	}
 
 	method := tags[0]

@@ -434,6 +434,31 @@ func TestStaticAndWildcardTriggersPanic(t *testing.T) {
 	}
 }
 
+func TestAutomaticOptions(t *testing.T) {
+	l := New()
+	l.Post("/api", fakeHandler())
+	l.Put("/api", fakeHandler())
+	l.Patch("/api", fakeHandler())
+	l.Trace("/api", fakeHandler())
+	test := htest.New(t, l)
+	test.Options("/api").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("Accept", "POST,PUT,TRACE,PATCH,OPTIONS")
+
+	test.Options("/404").Do().
+		ExpectStatus(http.StatusNotFound).
+		ExpectHeader("Accept", "")
+
+	// Allow custom options handler
+	l.Options("/api", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Batman", "Robin")
+		w.WriteHeader(http.StatusFound)
+	}))
+	test.Options("/api").Do().
+		ExpectStatus(http.StatusFound).
+		ExpectHeader("Batman", "Robin")
+}
+
 func TestValidation(t *testing.T) {
 	l := New()
 	l.Get("/api/:key", fakeHandler())
