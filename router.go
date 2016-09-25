@@ -10,10 +10,23 @@ import (
 	"golang.org/x/net/context"
 )
 
+// HTTP methods constants
+const (
+	GET     = "GET"
+	HEAD    = "HEAD"
+	POST    = "POST"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	TRACE   = "TRACE"
+	OPTIONS = "OPTIONS"
+	CONNECT = "CONNECT"
+	PATCH   = "PATCH"
+)
+
+var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH}
+
 // Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
-	rm RegisterMatcher
-
 	router *Router
 
 	middlewares Middlewares
@@ -29,13 +42,16 @@ type Router struct {
 	pool sync.Pool
 
 	namedMiddlewares map[string]Middlewares
+
+	host   string
+	hostrm *hostMatcher
 }
 
 // New creates a new router instance
 func New(mws ...Middleware) *Router {
 	r := &Router{
+		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
-		rm:               newRadixMatcher(),
 		namedMiddlewares: make(map[string]Middlewares),
 	}
 	r.pool.New = func() interface{} {
@@ -49,20 +65,41 @@ func New(mws ...Middleware) *Router {
 // Group creates a subrouter with parent pattern provided.
 func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	p := r.pattern + pattern
-	if pattern == "/" && r.pattern != "/" {
+	if pattern == "/" && r.pattern != "/" && r.pattern != "" {
 		p = r.pattern
 	}
 	validatePattern(p)
 
 	nr := &Router{
 		router:           r,
-		rm:               r.rm,
+		hostrm:           r.hostrm,
 		pattern:          p,
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
+		host:             r.host,
 	}
 	nr.Use(mws...)
 	return nr
+}
+
+// Host sets the host for the current router instances.
+// You can use patterns in the same way they are currently used for routes but in reverse order (params on the left)
+// 	NOTE: You have to use the '$' character instead of ':' for matching host parameters.
+// The following patterns works:
+/*
+	admin.example.com			will match			admin.example.com
+	$username.blog.com			will match			messi.blog.com
+						will not match			my.awesome.blog.com
+	*.example.com				will match			my.admin.example.com
+
+The following patterns are not allowed:
+	mail.*
+	*
+*/
+func (r *Router) Host(hostpattern string) *Router {
+	r.host = hostpattern
+	r.hostrm.Register(hostpattern)
+	return r
 }
 
 // Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
@@ -222,8 +259,6 @@ func (r *Router) UseHandlerFunc(fn HandlerFunc) {
 
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
 func (r *Router) Handle(method, pattern string, handler Handler) {
-	validatePattern(pattern)
-
 	var p string
 	if !r.isRoot() && pattern == "/" && r.pattern != "" {
 		p = r.pattern
@@ -232,21 +267,25 @@ func (r *Router) Handle(method, pattern string, handler Handler) {
 	}
 
 	built := r.buildMiddlewares(handler)
-	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{method, pattern, built})
-	r.router.rm.Register(method, p, built)
+	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{r.host, method, pattern, built})
+	rm := r.router.hostrm.Register(r.host)
+	rm.Register(method, p, built)
 }
 
 type registeredHandler struct {
-	method, pattern string
-	handler         Handler
+	host, method, pattern string
+	handler               Handler
 }
 
 // Mount mounts a subrouter at the provided pattern
 func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
-	sub := r.Group(pattern, mws...)
+	host := r.host
 	for _, rh := range router.registeredHandlers {
-		sub.Handle(rh.method, rh.pattern, rh.handler)
+		r.Host(rh.host)
+		r.Handle(rh.method, path.Join(pattern, rh.pattern), rh.handler)
 	}
+	// Restore previous host
+	r.host = host
 }
 
 func (r *Router) buildMiddlewares(handler Handler) Handler {
@@ -268,7 +307,7 @@ func (r *Router) HandleFunc(method, pattern string, fn HandlerFunc) {
 
 // ServeHTTP calls ServeHTTPC with a context.Background()
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.ServeHTTPC(context.Background(), w, req)
+	r.ServeHTTPC(contextFromRequest(req), w, req)
 }
 
 // ServeHTTPC finds the handler associated with the request's path.
@@ -277,13 +316,15 @@ func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.
 	ctx := r.pool.Get().(*Context)
 	ctx.parent = c
 
-	if ctx, h := r.router.rm.Match(ctx, req); h != nil {
+	if h := r.router.hostrm.Match(ctx, req); h != nil {
+		req = addContextToRequest(req, ctx)
 		h.ServeHTTPC(ctx, w, req)
 	} else {
+		req = addContextToRequest(req, ctx)
 		r.notFound(ctx, w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
-	ctx.reset()
+	ctx.Reset()
 	r.pool.Put(ctx)
 }
 
@@ -318,7 +359,7 @@ func (r *Router) ServeFiles(base string, root http.FileSystem) {
 	r.HeadH(pattern, fileServer)
 }
 
-// ServeFile serve a specfic file located at the passed path
+// ServeFile serve a specific file located at the passed path
 //
 // 	l := New()
 // 	l.ServeFile("/robots.txt", "path/to/robots.txt")
@@ -391,7 +432,7 @@ func (r *Router) Run(addr ...string) {
 
 	if len(addr) == 0 {
 		if p := os.Getenv("PORT"); p != "" {
-			a = p
+			a = ":" + p
 		} else {
 			a = ":3000"
 		}
@@ -442,7 +483,7 @@ func (r *Router) hasNamed(name string) bool {
 }
 
 func validatePattern(pattern string) {
-	if len(pattern) > 0 && pattern[0] != '/' {
+	if len(pattern) == 0 || pattern[0] != '/' {
 		panic("path must start with '/' in path '" + pattern + "'")
 	}
 }

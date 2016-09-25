@@ -58,7 +58,7 @@ type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
 
 // ServeHTTP makes HandlerFunc implement net/http.Handler interface
 func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h(context.Background(), w, r)
+	h(contextFromRequest(r), w, r)
 }
 
 // ServeHTTPC makes HandlerFunc implement Handler interface

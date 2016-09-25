@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/celrenheit/lion/matcher"
 	"golang.org/x/net/context"
 )
 
@@ -17,60 +18,73 @@ type RegisterMatcher interface {
 ///												RADIX 																				 ///
 ////////////////////////////////////////////////////////////////////////////
 
-var _ RegisterMatcher = (*radixMatcher)(nil)
+var _ RegisterMatcher = (*pathMatcher)(nil)
 
-type radixMatcher struct {
-	root *node
+type pathMatcher struct {
+	matcher matcher.Matcher
+	tags    matcher.Tags
 }
 
-func newRadixMatcher() *radixMatcher {
-	r := &radixMatcher{
-		root: &node{},
+func newPathMatcher() *pathMatcher {
+	cfg := &matcher.Config{
+		ParamChar:        ':',
+		WildcardChar:     '*',
+		Separators:       "/.",
+		GetSetterCreator: &creator{},
+	}
+
+	r := &pathMatcher{
+		matcher: matcher.Custom(cfg),
+		tags:    matcher.Tags{""},
 	}
 	return r
 }
 
-func (d *radixMatcher) Register(method, pattern string, handler Handler) {
-	if len(pattern) == 0 || pattern[0] != '/' {
-		panic("path must begin with '/' in path '" + pattern + "'")
-	}
+func (d *pathMatcher) Register(method, pattern string, handler Handler) {
+	d.prevalidation(method, pattern)
 
-	if d.root == nil {
-		d.root = &node{}
-	}
-
-	d.root.addRoute(method, pattern, handler)
+	d.matcher.Set(pattern, handler, matcher.Tags{method})
 }
 
-func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
-	n, c := d.root.findNode(c, r.Method, cleanPath(r.URL.Path))
-	if n == nil {
+func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
+	p := cleanPath(r.URL.Path)
+
+	d.tags[0] = r.Method
+
+	h := d.matcher.GetWithContext(c, p, d.tags)
+
+	if h == nil {
 		if r.Method == OPTIONS {
-			return c, d.automaticOptionsHandler(c, r.URL.Path)
+			hh := d.automaticOptionsHandler(c, r.URL.Path)
+			return c, hh
 		}
 		return c, nil
 	}
-	return c, n.getHandler(r.Method)
+
+	return c, h.(Handler)
 }
 
-func (d *radixMatcher) automaticOptionsHandler(c *Context, path string) Handler {
+func (d *pathMatcher) prevalidation(method, pattern string) {
+	if len(pattern) == 0 || pattern[0] != '/' {
+		panicl("path must begin with '/' in path '" + pattern + "'")
+	}
+
+	// Is http method allowed
+	if !isInStringSlice(allowedHTTPMethods[:], method) {
+		panicl("lion: invalid http method => %s\n\tShould be one of %v", method, allowedHTTPMethods)
+	}
+}
+
+func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) Handler {
 	allowed := make([]string, 0, len(allowedHTTPMethods))
-	var fn *node // Node already found (to avoid calling too many times findNode)
 	for _, method := range allowedHTTPMethods {
 		if method == OPTIONS {
 			continue
 		}
 
-		if fn == nil {
-			n, _ := d.root.findNode(c, method, path)
-			if n != nil {
-				fn = n
-			} else {
-				continue
-			}
-		}
-
-		if fn.isLeafForMethod(method) {
+		d.tags[0] = method
+		h := d.matcher.GetWithContext(c, path, d.tags)
+		if h != nil {
 			allowed = append(allowed, method)
 		}
 	}
@@ -86,4 +100,111 @@ func (d *radixMatcher) automaticOptionsHandler(c *Context, path string) Handler 
 		w.Header().Set("Accept", joined)
 		w.WriteHeader(http.StatusOK)
 	})
+}
+
+func isInStringSlice(slice []string, expected string) bool {
+	for _, val := range slice {
+		if val == expected {
+			return true
+		}
+	}
+	return false
+}
+
+type methodsHandlers struct {
+	get     Handler
+	head    Handler
+	post    Handler
+	put     Handler
+	delete  Handler
+	trace   Handler
+	options Handler
+	connect Handler
+	patch   Handler
+}
+
+func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
+	if len(tags) != 1 {
+		panicl("Length != 1")
+
+	}
+
+	method := tags[0]
+
+	var handler Handler
+	if value == nil {
+		handler = nil
+	} else {
+		if h, ok := value.(Handler); !ok {
+			panicl("Not handler")
+		} else {
+			handler = h
+		}
+	}
+
+	gs.addHandler(method, handler)
+}
+
+func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
+	if len(tags) != 1 {
+		panicl("No method")
+	}
+
+	method := tags[0]
+
+	return gs.getHandler(method)
+}
+
+func (gs *methodsHandlers) addHandler(method string, handler Handler) {
+	switch method {
+	case GET:
+		gs.get = handler
+	case HEAD:
+		gs.head = handler
+	case POST:
+		gs.post = handler
+	case PUT:
+		gs.put = handler
+	case DELETE:
+		gs.delete = handler
+	case TRACE:
+		gs.trace = handler
+	case OPTIONS:
+		gs.options = handler
+	case CONNECT:
+		gs.connect = handler
+	case PATCH:
+		gs.patch = handler
+	}
+}
+
+func (gs *methodsHandlers) getHandler(method string) Handler {
+	switch method {
+	case GET:
+		return gs.get
+	case HEAD:
+		return gs.head
+	case POST:
+		return gs.post
+	case PUT:
+		return gs.put
+	case DELETE:
+		return gs.delete
+	case TRACE:
+		return gs.trace
+	case OPTIONS:
+		return gs.options
+	case CONNECT:
+		return gs.connect
+	case PATCH:
+		return gs.patch
+	default:
+		return nil
+	}
+}
+
+type creator struct{}
+
+func (c *creator) New() matcher.GetSetter {
+	return &methodsHandlers{}
 }
