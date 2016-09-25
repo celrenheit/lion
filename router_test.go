@@ -128,10 +128,10 @@ func TestRouteMatching(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest(method, test.Input, nil)
-
-		c, h := mux.rm.Match(&Context{
+		c := &Context{
 			parent: context.TODO(),
-		}, req)
+		}
+		h := mux.hostrm.Match(c, req)
 
 		if len(test.ExpectedParams) != len(c.keys) {
 			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.keys), c.toMap(), test.Input)

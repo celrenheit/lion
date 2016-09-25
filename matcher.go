@@ -1,6 +1,10 @@
 package lion
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/celrenheit/lion/matcher"
+)
 
 // RegisterMatcher registers and matches routes to Handlers
 type RegisterMatcher interface {
@@ -12,40 +16,49 @@ type RegisterMatcher interface {
 ///												RADIX 																				 ///
 ////////////////////////////////////////////////////////////////////////////
 
-var _ RegisterMatcher = (*radixMatcher)(nil)
+var _ RegisterMatcher = (*pathMatcher)(nil)
 
-type radixMatcher struct {
-	root *node
+type pathMatcher struct {
+	matcher matcher.Matcher
+	tags    matcher.Tags
 }
 
-func newRadixMatcher() *radixMatcher {
-	r := &radixMatcher{
-		root: &node{},
+func newPathMatcher() *pathMatcher {
+	cfg := &matcher.Config{
+		ParamChar:        ':',
+		WildcardChar:     '*',
+		Separators:       "/.",
+		GetSetterCreator: &creator{},
+	}
+
+	r := &pathMatcher{
+		matcher: matcher.Custom(cfg),
+		tags:    matcher.Tags{""},
 	}
 	return r
 }
 
-func (d *radixMatcher) Register(method, pattern string, handler Handler) {
+func (d *pathMatcher) Register(method, pattern string, handler Handler) {
 	d.prevalidation(method, pattern)
 
-	if d.root == nil {
-		d.root = &node{}
-	}
-
-	d.root.addRoute(method, pattern, handler)
-
-	d.postvalidation(method, pattern)
+	d.matcher.Set(pattern, handler, matcher.Tags{method})
 }
 
-func (d *radixMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
-	n, c := d.root.findNode(c, r.Method, cleanPath(r.URL.Path))
-	if n == nil {
+func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
+	p := cleanPath(r.URL.Path)
+
+	d.tags[0] = r.Method
+
+	h := d.matcher.GetWithContext(c, p, d.tags)
+
+	if h == nil {
 		return c, nil
 	}
-	return c, n.getHandler(r.Method)
+
+	return c, h.(Handler)
 }
 
-func (d *radixMatcher) prevalidation(method, pattern string) {
+func (d *pathMatcher) prevalidation(method, pattern string) {
 	if len(pattern) == 0 || pattern[0] != '/' {
 		panicl("path must begin with '/' in path '" + pattern + "'")
 	}
@@ -56,27 +69,6 @@ func (d *radixMatcher) prevalidation(method, pattern string) {
 	}
 }
 
-func (d *radixMatcher) postvalidation(method, pattern string) {
-	// Find duplicate parameter names
-	d.findDuplicateParamNames(d.root, method, pattern, []string{})
-}
-
-func (d *radixMatcher) findDuplicateParamNames(n *node, method, pattern string, pnames []string) {
-	for _, children := range n.children {
-		for _, child := range children {
-			if child.nodeType > static && child.pname == "" {
-				panicl(`cannot use an unnamed parameter for  %s`, pattern)
-			}
-
-			if len(child.pname) > 0 && isInStringSlice(pnames, child.pname) {
-				panicl("lion: Duplicate parameter %s for %s", child.pname, pattern)
-			}
-
-			d.findDuplicateParamNames(child, method, pattern, append(pnames, child.pname))
-		}
-	}
-}
-
 func isInStringSlice(slice []string, expected string) bool {
 	for _, val := range slice {
 		if val == expected {
@@ -84,4 +76,101 @@ func isInStringSlice(slice []string, expected string) bool {
 		}
 	}
 	return false
+}
+
+type methodsHandlers struct {
+	get     Handler
+	head    Handler
+	post    Handler
+	put     Handler
+	delete  Handler
+	trace   Handler
+	options Handler
+	connect Handler
+	patch   Handler
+}
+
+func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
+	if len(tags) != 1 {
+		panicl("Length != 1")
+	}
+
+	method := tags[0]
+
+	var handler Handler
+	if value == nil {
+		handler = nil
+	} else {
+		if h, ok := value.(Handler); !ok {
+			panicl("Not handler")
+		} else {
+			handler = h
+		}
+	}
+
+	gs.addHandler(method, handler)
+}
+
+func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
+	if len(tags) != 1 {
+		panicl("No method")
+	}
+
+	method := tags[0]
+
+	return gs.getHandler(method)
+}
+
+func (gs *methodsHandlers) addHandler(method string, handler Handler) {
+	switch method {
+	case GET:
+		gs.get = handler
+	case HEAD:
+		gs.head = handler
+	case POST:
+		gs.post = handler
+	case PUT:
+		gs.put = handler
+	case DELETE:
+		gs.delete = handler
+	case TRACE:
+		gs.trace = handler
+	case OPTIONS:
+		gs.options = handler
+	case CONNECT:
+		gs.connect = handler
+	case PATCH:
+		gs.patch = handler
+	}
+}
+
+func (gs *methodsHandlers) getHandler(method string) Handler {
+	switch method {
+	case GET:
+		return gs.get
+	case HEAD:
+		return gs.head
+	case POST:
+		return gs.post
+	case PUT:
+		return gs.put
+	case DELETE:
+		return gs.delete
+	case TRACE:
+		return gs.trace
+	case OPTIONS:
+		return gs.options
+	case CONNECT:
+		return gs.connect
+	case PATCH:
+		return gs.patch
+	default:
+		return nil
+	}
+}
+
+type creator struct{}
+
+func (c *creator) New() matcher.GetSetter {
+	return &methodsHandlers{}
 }

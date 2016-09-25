@@ -4,25 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 
 	"golang.org/x/net/context"
 )
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
-}
-
-func longestPrefix(s1, s2 string) int {
-	max := min(len(s1), len(s2))
-	i := 0
-	for i < max && s1[i] == s2[i] {
-		i++
-	}
-	return i
-}
 
 // Wrap converts an http.Handler to returns a Handler
 func Wrap(h http.Handler) Handler {
@@ -41,51 +26,6 @@ func UnWrap(h Handler) http.Handler {
 	return HandlerFunc(h.ServeHTTPC)
 }
 
-func stringsIndexAny(str, chars string) int {
-	ls := len(str)
-	lc := len(chars)
-
-	for i := 0; i < ls; i++ {
-		s := str[i]
-		for j := 0; j < lc; j++ {
-			if s == chars[j] {
-				return i
-			}
-		}
-	}
-	return -1
-}
-
-func stringsIndex(str string, char byte) int {
-	ls := len(str)
-
-	for i := 0; i < ls; i++ {
-		if str[i] == char {
-			return i
-		}
-	}
-	return -1
-}
-
-func stringsHasPrefix(str, prefix string) bool {
-	// ls := len(str)
-	sl := len(str)
-	pl := len(prefix)
-	if sl < pl {
-		return false
-	}
-	i := 0
-	for ; i < pl; i++ {
-		if str[i] != prefix[i] {
-			break
-		}
-	}
-	if i == pl {
-		return true
-	}
-	return false
-}
-
 func cleanPath(p string) string {
 	if p == "" {
 		return "/"
@@ -102,4 +42,12 @@ func cleanPath(p string) string {
 
 func panicl(format string, args ...interface{}) {
 	panic(fmt.Sprintf("lion: "+format, args...))
+}
+
+func reverseHostStdLib(pattern string) string {
+	reversed := strings.Split(pattern, ".")
+	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
+		reversed[i], reversed[j] = reversed[j], reversed[i]
+	}
+	return strings.Join(reversed, ".")
 }
