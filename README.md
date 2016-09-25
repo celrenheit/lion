@@ -9,6 +9,7 @@ Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares fo
 * **Context-Aware**: Lion uses the de-facto standard [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. It [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
 * **Modular**: You can define your own modules to easily build a scalable architecture
 * **REST friendly**: You can define modules to groups http resources together.
+* **Host**: Match hosts. Each host can get its own content.
 * **Zero allocations**: Lion generates zero garbage[*](#benchmarks).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -27,19 +28,20 @@ Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares fo
   - [Middlewares](#middlewares)
     - [Using Named Middlewares](#using-named-middlewares)
     - [Using Negroni Middlewares](#using-negroni-middlewares)
+  - [Match Hosts](#match-hosts)
   - [Resources](#resources)
   - [Examples](#examples)
     - [Using GET, POST, PUT, DELETE http methods](#using-get-post-put-delete-http-methods)
     - [Using middlewares](#using-middlewares)
     - [Group routes by a base path](#group-routes-by-a-base-path)
-    - [Mouting a router into a base path](#mouting-a-router-into-a-base-path)
+    - [Mounting a router into a base path](#mounting-a-router-into-a-base-path)
     - [Default middlewares](#default-middlewares)
 - [Custom Middlewares](#custom-middlewares)
     - [Custom Logger example](#custom-logger-example)
-- [Benchmarks](#benchmarks)
-- [License](#license)
-- [Todo](#todo)
-- [Credits](#credits)
+  - [Benchmarks](#benchmarks)
+  - [License](#license)
+  - [Todo](#todo)
+  - [Credits](#credits)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -272,6 +274,31 @@ l.UseNegroni(negroni.NewRecovery())
 l.Run()
 ```
 
+## Match Hosts
+
+You can match a specific or multiple hosts. You can use patterns in the same way they are currently used for routes with only some [edge cases](https://godoc.org/github.com/celrenheit/lion#Router.Host).
+The main difference is that you will have to use the '**$**' character instead of '**:**' to define a parameter.
+
+
+admin.example.com			will match			admin.example.com
+$username.blog.com			will match			messi.blog.com
+					will not match			my.awesome.blog.com
+*.example.com				will match			my.admin.example.com
+
+```go
+l := lion.New()
+
+// Specific to v1
+v1 := l.Group("/api")
+v1.Host("v1.example.org").Get("/", v1Handler)
+
+// Specific to v2
+v2 := l.Group("/api")
+v2.Host("v2.example.org").Get("/", v2Handler)
+
+l.Run()
+```
+
 ## Resources
 
 You can define a resource to represent a REST, CRUD api resource.
@@ -499,7 +526,7 @@ l.GetFunc("/hello/:name", Hello)
 l.Run()
 ```
 
-# Benchmarks
+## Benchmarks
 
 Without path cleaning
 
@@ -545,20 +572,21 @@ BenchmarkLion_StaticAll   	   30000	     56170 ns/op	      96 B/op	       8 allo
 
 A more in depth benchmark with a comparison with other frameworks is coming soon.
 
-# License
+## License
 
 https://github.com/celrenheit/lion/blob/master/LICENSE
 
-# Todo
+## Todo
 
-* [ ] Support for Go 1.7 context
-* [ ] Websocket handling
+* [x] Support for Go 1.7 context
+* [x] Host matching
+* [x] Automatic OPTIONS handler
 * [ ] Modules
   * [ ] JWT Auth module
 * [x] Better static file handling
 * [ ] More documentation
 
-# Credits
+## Credits
 
 * @codegangsta for https://github.com/codegangsta/negroni
 	* Static and Recovery middlewares are taken from Negroni
