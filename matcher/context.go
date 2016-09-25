@@ -1,38 +1,40 @@
-package lion
+package matcher
 
 import "golang.org/x/net/context"
 
 // Check Context implements net.Context
-var _ context.Context = (*Context)(nil)
-
-// type ContextI interface {
-// 	context.Context
-// 	Param(string) string
-// }
 
 // Context implements golang.org/x/net/context.Context and stores values of url parameters
-type Context struct {
+type Context interface {
+	context.Context
+	Param(key string) string
+	ParamOk(key string) (string, bool)
+	AddParam(key, value string)
+	Remove(key string)
+	Reset()
+}
+
+type ctx struct {
 	context.Context
 	parent context.Context
 
-	keys   []string
-	values []string
+	params []Parameter
 }
 
 // NewContext creates a new context instance
-func NewContext() *Context {
+func NewContext() Context {
 	return NewContextWithParent(context.Background())
 }
 
 // NewContextWithParent creates a new context with a parent context specified
-func NewContextWithParent(c context.Context) *Context {
-	return &Context{
+func NewContextWithParent(c context.Context) Context {
+	return &ctx{
 		parent: c,
 	}
 }
 
 // Value returns the value for the passed key. If it is not found in the url params it returns parent's context Value
-func (p *Context) Value(key interface{}) interface{} {
+func (p *ctx) Value(key interface{}) interface{} {
 	if k, ok := key.(string); ok {
 		if val, exist := p.ParamOk(k); exist {
 			return val
@@ -42,27 +44,22 @@ func (p *Context) Value(key interface{}) interface{} {
 	return p.parent.Value(key)
 }
 
-func (p *Context) AddParam(key, val string) {
-	p.keys = append(p.keys, key)
-	p.values = append(p.values, val)
-}
-
 // Param returns the value of a param.
 // If it does not exist it returns an empty string
-func (p *Context) Param(key string) string {
+func (p *ctx) Param(key string) string {
 	val, _ := p.ParamOk(key)
 	return val
 }
 
 // ParamOk returns the value of a param and a boolean that indicates if the param exists.
-func (p *Context) ParamOk(key string) (string, bool) {
-	for i, name := range p.keys {
-		if name == key {
-			return p.values[i], true
+func (p *ctx) ParamOk(key string) (string, bool) {
+	for _, p := range p.params {
+		if p.Key == key {
+			return p.Val, true
 		}
 	}
 
-	if c, ok := p.parent.(*Context); ok {
+	if c, ok := p.parent.(Context); ok {
 		return c.ParamOk(key)
 	} else if val, ok := p.parent.Value(key).(string); ok {
 		return val, ok
@@ -71,42 +68,48 @@ func (p *Context) ParamOk(key string) (string, bool) {
 	return "", false
 }
 
-func (p *Context) toMap() M {
-	m := M{}
-	for i := range p.keys {
-		m[p.keys[i]] = p.values[i]
+func (p *ctx) toMap() map[string]string {
+	m := map[string]string{}
+	for _, p := range p.params {
+		m[p.Key] = p.Val
 	}
 	return m
 }
 
-func (p *Context) Reset() {
-	p.keys = p.keys[:0]
-	p.values = p.values[:0]
+func (p *ctx) Reset() {
+	p.params = p.params[:0]
 	p.parent = nil
 }
 
-func (p *Context) Remove(key string) {
+func (p *ctx) Remove(key string) {
 	i := p.indexOf(key)
 	if i < 0 {
-		panicl("Cannot remove unknown key '%s' from context", key)
+		panicm("Cannot remove unknown key '%s' from context", key)
 	}
 
-	p.keys = append(p.keys[:i], p.keys[i+1:]...)
-	p.values = append(p.values[:i], p.values[i+1:]...)
+	p.params = append(p.params[:i], p.params[i+1:]...)
 }
 
-func (p *Context) indexOf(key string) int {
-	for i := len(p.keys) - 1; i >= 0; i-- {
-		if p.keys[i] == key {
+func (p *ctx) indexOf(key string) int {
+	for i := len(p.params) - 1; i >= 0; i-- {
+		if p.params[i].Key == key {
 			return i
 		}
 	}
 	return -1
 }
 
+func (p *ctx) Params() []Parameter {
+	return p.params
+}
+
+func (p *ctx) AddParam(key, value string) {
+	p.params = append(p.params, Parameter{Key: key, Val: value})
+}
+
 // C returns a Context based on a context.Context passed. If it does not convert to Context, it creates a new one with the context passed as argument.
-func C(c context.Context) *Context {
-	if ctx, ok := c.(*Context); ok {
+func C(c context.Context) Context {
+	if ctx, ok := c.(Context); ok {
 		return ctx
 	}
 	return NewContextWithParent(c)
@@ -115,4 +118,9 @@ func C(c context.Context) *Context {
 // Param returns the value of a url param base on the passed context
 func Param(c context.Context, key string) string {
 	return C(c).Param(key)
+}
+
+type Parameter struct {
+	Key string
+	Val string
 }
