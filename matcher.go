@@ -113,7 +113,7 @@ func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
 
 func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
 	if len(tags) != 1 {
-		panicl("No method")
+		return nil
 	}
 
 	method := tags[0]
