@@ -277,6 +277,39 @@ func TestGroupSubGroup(t *testing.T) {
 	test.Put("/admin").Do().ExpectHeader("Test-Key", "Put")
 }
 
+func TestSubrouter(t *testing.T) {
+	r := New()
+	r.Use(fakeMW("Global", "true"))
+	r.Get("/", fakeHandler())
+
+	sub := r.Subrouter()
+	sub.Use(fakeMW("Sub", "true"))
+	sub.Get("/hello", fakeHandler())
+
+	test := htest.New(t, r)
+	test.Get("/").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("Global", "true")
+
+	test.Get("/hello").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("Global", "true").
+		ExpectHeader("Sub", "true")
+
+	// Mounting
+	m := New()
+	api := m.Group("/api")
+	api.Mount("/", sub)
+	test = htest.New(t, m)
+	test.Get("/api").Do().
+		ExpectStatus(http.StatusNotFound)
+
+	test.Get("/api/hello").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("Global", "true").
+		ExpectHeader("Sub", "true")
+}
+
 func TestNamedMiddlewares(t *testing.T) {
 	l := New()
 	l.DefineFunc("admin", func(next Handler) Handler {
@@ -530,6 +563,19 @@ func (f *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r
 
 func fakeHandler() Handler {
 	return &fakeHandlerType{t: randToken()}
+}
+
+type fakemw struct{ key, val string }
+
+func (f *fakemw) ServeNext(next Handler) Handler {
+	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(f.key, f.val)
+		next.ServeHTTPC(c, w, r)
+	})
+}
+
+func fakeMW(key, val string) Middleware {
+	return &fakemw{key, val}
 }
 
 func randToken() string {

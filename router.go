@@ -53,13 +53,29 @@ func New(mws ...Middleware) *Router {
 		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
-	}
-	r.pool.New = func() interface{} {
-		return NewContext()
+		pool:             newCtxPool(),
 	}
 	r.router = r
 	r.Use(mws...)
 	return r
+}
+
+// Subrouter creates a new router based on the parent router.
+//
+// A subrouter has the same pattern and host as the parent router.
+// It has it's own middlewares.
+func (r *Router) Subrouter(mws ...Middleware) *Router {
+	nr := &Router{
+		router:           r,
+		hostrm:           r.hostrm,
+		pattern:          r.pattern,
+		middlewares:      Middlewares{},
+		namedMiddlewares: make(map[string]Middlewares),
+		host:             r.host,
+		pool:             newCtxPool(),
+	}
+	nr.Use(mws...)
+	return nr
 }
 
 // Group creates a subrouter with parent pattern provided.
@@ -70,16 +86,17 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	}
 	validatePattern(p)
 
-	nr := &Router{
-		router:           r,
-		hostrm:           r.hostrm,
-		pattern:          p,
-		middlewares:      Middlewares{},
-		namedMiddlewares: make(map[string]Middlewares),
-		host:             r.host,
-	}
-	nr.Use(mws...)
+	nr := r.Subrouter(mws...)
+	nr.pattern = p
 	return nr
+}
+
+func newCtxPool() sync.Pool {
+	return sync.Pool{
+		New: func() interface{} {
+			return NewContext()
+		},
+	}
 }
 
 // Host sets the host for the current router instances.
