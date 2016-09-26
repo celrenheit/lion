@@ -274,7 +274,7 @@ l.UseNegroni(negroni.NewRecovery())
 l.Run()
 ```
 
-## Match Hosts
+## Matching Hosts
 
 You can match a specific or multiple hosts. You can use patterns in the same way they are currently used for routes with only some [edge cases](https://godoc.org/github.com/celrenheit/lion#Router.Host).
 The main difference is that you will have to use the '**$**' character instead of '**:**' to define a parameter.
@@ -286,16 +286,22 @@ $username.blog.com			will match			messi.blog.com
 *.example.com				will match			my.admin.example.com
 
 ```go
-l := lion.New()
+l := New()
+
+// Group by /api basepath
+api := l.Group("/api")
 
 // Specific to v1
-v1 := l.Group("/api")
-v1.Host("v1.example.org").Get("/", v1Handler)
+v1 := api.Subrouter().
+	Host("v1.example.org")
+
+v1.Get("/", v1Handler)
 
 // Specific to v2
-v2 := l.Group("/api")
-v2.Host("v2.example.org").Get("/", v2Handler)
+v2 := api.Subrouter().
+	Host("v2.example.org")
 
+v2.Get("/", v2Handler)
 l.Run()
 ```
 

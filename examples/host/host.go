@@ -10,12 +10,21 @@ import (
 
 func main() {
 	l := lion.New()
+
+	// Group by /api basepath
+	api := l.Group("/api")
+
 	// Specific to v1
-	v1 := l.Group("/api")
-	v1.Host("v1.local.dev:3000").Get("/", handler("v1"))
+	v1 := api.Subrouter().
+		Host("v1.local.dev:3000")
+
+	v1.Get("/", handler("v1"))
+
 	// Specific to v2
-	v2 := l.Group("/api")
-	v2.Host("v2.local.dev:3000").Get("/", handler("v2"))
+	v2 := api.Subrouter().
+		Host("v2.local.dev:3000")
+
+	v2.Get("/", handler("v2"))
 
 	// Common
 	l.Get("/", handler(`
