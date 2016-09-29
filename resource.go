@@ -2,6 +2,8 @@ package lion
 
 import (
 	"net/http"
+	"reflect"
+	"strings"
 
 	"golang.org/x/net/context"
 )
@@ -114,84 +116,37 @@ func (r *Router) Resource(pattern string, resource Resource) {
 		}
 	}
 
-	// GET
-	if res, ok := resource.(GetResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(GetResourceMiddlewares); ok {
-			s.Use(mw.GetMiddlewares()...)
+	for _, m := range allowedHTTPMethods {
+		if hfn, ok := isHandlerFuncInResource(m, resource); ok {
+			s := sub.Group("/")
+			if mws, ok := isMiddlewareInResource(m, resource); ok {
+				s.Use(mws()...)
+			}
+			s.HandleFunc(m, "/", hfn)
 		}
-		s.GetFunc("/", res.Get)
+	}
+}
+
+// checks if there is a Name(c context.Context, w http.ResponseWriter, r *http.Request) method available on the Resource r
+func isHandlerFuncInResource(m string, r Resource) (func(c context.Context, w http.ResponseWriter, r *http.Request), bool) {
+	name := strings.Title(strings.ToLower(m))
+	method := reflect.ValueOf(r).MethodByName(name)
+	if !method.IsValid() {
+		return nil, false
 	}
 
-	// HEAD
-	if res, ok := resource.(HeadResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(HeadResourceMiddlewares); ok {
-			s.Use(mw.HeadMiddlewares()...)
-		}
-		s.HeadFunc("/", res.Head)
+	fn, ok := method.Interface().(func(c context.Context, w http.ResponseWriter, r *http.Request))
+	return fn, ok
+}
+
+// checks if there is a NameMiddlewares() Middlewares method available on the Resource r
+func isMiddlewareInResource(m string, r Resource) (func() Middlewares, bool) {
+	name := strings.Title(strings.ToLower(m)) + "Middlewares"
+	method := reflect.ValueOf(r).MethodByName(name)
+	if !method.IsValid() {
+		return nil, false
 	}
 
-	// POST
-	if res, ok := resource.(PostResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(PostResourceMiddlewares); ok {
-			s.Use(mw.PostMiddlewares()...)
-		}
-		s.PostFunc("/", res.Post)
-	}
-
-	// PUT
-	if res, ok := resource.(PutResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(PutResourceMiddlewares); ok {
-			s.Use(mw.PutMiddlewares()...)
-		}
-		s.PutFunc("/", res.Put)
-	}
-
-	// DELETE
-	if res, ok := resource.(DeleteResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(DeleteResourceMiddlewares); ok {
-			s.Use(mw.DeleteMiddlewares()...)
-		}
-		s.DeleteFunc("/", res.Delete)
-	}
-
-	// TRACE
-	if res, ok := resource.(TraceResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(TraceResourceMiddlewares); ok {
-			s.Use(mw.TraceMiddlewares()...)
-		}
-		s.TraceFunc("/", res.Trace)
-	}
-
-	// OPTIONS
-	if res, ok := resource.(OptionsResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(OptionsResourceMiddlewares); ok {
-			s.Use(mw.OptionsMiddlewares()...)
-		}
-		s.OptionsFunc("/", res.Options)
-	}
-
-	// CONNECT
-	if res, ok := resource.(ConnectResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(ConnectResourceMiddlewares); ok {
-			s.Use(mw.ConnectMiddlewares()...)
-		}
-		s.ConnectFunc("/", res.Connect)
-	}
-
-	// PATCH
-	if res, ok := resource.(PatchResource); ok {
-		s := sub.Group("/")
-		if mw, ok := resource.(PatchResourceMiddlewares); ok {
-			s.Use(mw.PatchMiddlewares()...)
-		}
-		s.PatchFunc("/", res.Patch)
-	}
+	fn, ok := method.Interface().(func() Middlewares)
+	return fn, ok
 }
