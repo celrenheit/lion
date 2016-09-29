@@ -248,7 +248,7 @@ func TestGroupSubGroup(t *testing.T) {
 	s := New()
 
 	admin := s.Group("/admin")
-	sub := admin.Group("/")
+	sub := admin.Subrouter()
 	sub.UseFunc(func(next Handler) Handler {
 		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Get")
@@ -260,7 +260,7 @@ func TestGroupSubGroup(t *testing.T) {
 		w.Write([]byte("Get"))
 	})
 
-	sub2 := admin.Group("/")
+	sub2 := admin.Subrouter()
 	sub2.UseFunc(func(next Handler) Handler {
 		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Put")

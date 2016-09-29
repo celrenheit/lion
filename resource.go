@@ -118,7 +118,7 @@ func (r *Router) Resource(pattern string, resource Resource) {
 
 	for _, m := range allowedHTTPMethods {
 		if hfn, ok := isHandlerFuncInResource(m, resource); ok {
-			s := sub.Group("/")
+			s := sub.Subrouter()
 			if mws, ok := isMiddlewareInResource(m, resource); ok {
 				s.Use(mws()...)
 			}
