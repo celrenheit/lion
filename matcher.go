@@ -8,7 +8,7 @@ import (
 )
 
 // RegisterMatcher registers and matches routes to Handlers
-type RegisterMatcher interface {
+type registerMatcher interface {
 	Register(method, pattern string, handler http.Handler)
 	Match(*Context, *http.Request) (*Context, http.Handler)
 }
@@ -17,7 +17,7 @@ type RegisterMatcher interface {
 ///												RADIX 																				 ///
 ////////////////////////////////////////////////////////////////////////////
 
-var _ RegisterMatcher = (*pathMatcher)(nil)
+var _ registerMatcher = (*pathMatcher)(nil)
 
 type pathMatcher struct {
 	matcher matcher.Matcher

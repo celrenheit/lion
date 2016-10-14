@@ -15,7 +15,7 @@ const (
 
 type hostMatcher struct {
 	matcher   matcher.Matcher
-	defaultRM RegisterMatcher
+	defaultRM registerMatcher
 	multihost bool
 }
 
@@ -34,10 +34,10 @@ func newHostMatcher() *hostMatcher {
 }
 
 type registererRMGrabber struct {
-	rm RegisterMatcher
+	rm registerMatcher
 }
 
-func (hm *hostMatcher) Register(pattern string) RegisterMatcher {
+func (hm *hostMatcher) Register(pattern string) registerMatcher {
 	host := pattern
 
 	// Switch to multihost
@@ -72,7 +72,7 @@ func (hm *hostMatcher) Match(c *Context, req *http.Request) http.Handler {
 			c.Remove(defaultAnyHostKey)
 		}
 
-		if rm, ok := value.(RegisterMatcher); ok {
+		if rm, ok := value.(registerMatcher); ok {
 			_, h := rm.Match(c, req)
 			return h
 		}
@@ -84,12 +84,12 @@ func (hm *hostMatcher) Match(c *Context, req *http.Request) http.Handler {
 }
 
 type hostStore struct {
-	rm RegisterMatcher
+	rm registerMatcher
 }
 
 func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
 	// Overwrite RegisterMatcher
-	if rm, ok := value.(RegisterMatcher); ok {
+	if rm, ok := value.(registerMatcher); ok {
 		hs.rm = rm
 	}
 
