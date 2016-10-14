@@ -8,8 +8,8 @@ type Module interface {
 	Routes(*Router)
 }
 
-// ModuleRequirements specify that the module requires specific named middlewares.
-type ModuleRequirements interface {
+// moduleRequirements specify that the module requires specific named middlewares.
+type moduleRequirements interface {
 	Requires() []string
 }
 
@@ -22,7 +22,7 @@ func (r *Router) Module(modules ...Module) {
 
 func (r *Router) registerModule(m Module) {
 	g := r.Group(m.Base())
-	if req, ok := m.(ModuleRequirements); ok {
+	if req, ok := m.(moduleRequirements); ok {
 		for _, dep := range req.Requires() {
 			if !r.hasNamed(dep) {
 				panic("Unmet middleware requirement for " + dep)
