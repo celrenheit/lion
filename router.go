@@ -361,8 +361,8 @@ func (r *Router) ServeFiles(base string, root http.FileSystem) {
 	pattern := path.Join(base, "/*")
 	fileServer := http.StripPrefix(base, http.FileServer(root))
 
-	r.GetH(pattern, fileServer)
-	r.HeadH(pattern, fileServer)
+	r.Get(pattern, fileServer)
+	r.Head(pattern, fileServer)
 }
 
 // ServeFile serve a specific file located at the passed path
@@ -380,51 +380,6 @@ func (r *Router) ServeFile(base, path string) {
 
 	r.Get(base, handler)
 	r.Head(base, handler)
-}
-
-// GetH wraps a http.Handler
-func (r *Router) GetH(pattern string, handler http.Handler) {
-	r.Get(pattern, Wrap(handler))
-}
-
-// HeadH wraps a http.Handler
-func (r *Router) HeadH(pattern string, handler http.Handler) {
-	r.Head(pattern, Wrap(handler))
-}
-
-// PostH wraps a http.Handler
-func (r *Router) PostH(pattern string, handler http.Handler) {
-	r.Post(pattern, Wrap(handler))
-}
-
-// PutH wraps a http.Handler
-func (r *Router) PutH(pattern string, handler http.Handler) {
-	r.Put(pattern, Wrap(handler))
-}
-
-// DeleteH wraps a http.Handler
-func (r *Router) DeleteH(pattern string, handler http.Handler) {
-	r.Delete(pattern, Wrap(handler))
-}
-
-// TraceH wraps a http.Handler
-func (r *Router) TraceH(pattern string, handler http.Handler) {
-	r.Trace(pattern, Wrap(handler))
-}
-
-// OptionsH wraps a http.Handler
-func (r *Router) OptionsH(pattern string, handler http.Handler) {
-	r.Options(pattern, Wrap(handler))
-}
-
-// ConnectH wraps a http.Handler
-func (r *Router) ConnectH(pattern string, handler http.Handler) {
-	r.Connect(pattern, Wrap(handler))
-}
-
-// PatchH wraps a http.Handler
-func (r *Router) PatchH(pattern string, handler http.Handler) {
-	r.Patch(pattern, Wrap(handler))
 }
 
 // Run calls http.ListenAndServe for the current router.

@@ -79,8 +79,7 @@ func (m *mockResponseWriter) WriteString(s string) (n int, err error) {
 func (m *mockResponseWriter) WriteHeader(int) {}
 
 func loadLion(routes []route) http.Handler {
-	hn := httpHandlerFunc
-	h := Wrap(http.HandlerFunc(hn))
+	h := http.HandlerFunc(httpHandlerFunc)
 	mux := New()
 	for _, route := range routes {
 		switch route.method {
