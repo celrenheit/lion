@@ -6,8 +6,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-
-	"golang.org/x/net/context"
 )
 
 // HTTP methods constants
@@ -31,11 +29,11 @@ type Router struct {
 
 	middlewares Middlewares
 
-	handler Handler // TODO: create a handler
+	handler http.Handler // TODO: create a handler
 
 	pattern string
 
-	notFoundHandler Handler
+	notFoundHandler http.Handler
 
 	registeredHandlers []registeredHandler // Used for Mount()
 
@@ -120,105 +118,105 @@ func (r *Router) Host(hostpattern string) *Router {
 }
 
 // Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
-func (r *Router) Any(pattern string, handler Handler) {
+func (r *Router) Any(pattern string, handler http.Handler) {
 	for _, m := range allowedHTTPMethods {
 		r.Handle(m, pattern, handler)
 	}
 }
 
 // Get registers an http GET method receiver with the provided Handler
-func (r *Router) Get(pattern string, handler Handler) {
+func (r *Router) Get(pattern string, handler http.Handler) {
 	r.Handle("GET", pattern, handler)
 }
 
 // Head registers an http HEAD method receiver with the provided Handler
-func (r *Router) Head(pattern string, handler Handler) {
+func (r *Router) Head(pattern string, handler http.Handler) {
 	r.Handle("HEAD", pattern, handler)
 }
 
 // Post registers an http POST method receiver with the provided Handler
-func (r *Router) Post(pattern string, handler Handler) {
+func (r *Router) Post(pattern string, handler http.Handler) {
 	r.Handle("POST", pattern, handler)
 }
 
 // Put registers an http PUT method receiver with the provided Handler
-func (r *Router) Put(pattern string, handler Handler) {
+func (r *Router) Put(pattern string, handler http.Handler) {
 	r.Handle("PUT", pattern, handler)
 }
 
 // Delete registers an http DELETE method receiver with the provided Handler
-func (r *Router) Delete(pattern string, handler Handler) {
+func (r *Router) Delete(pattern string, handler http.Handler) {
 	r.Handle("DELETE", pattern, handler)
 }
 
 // Trace registers an http TRACE method receiver with the provided Handler
-func (r *Router) Trace(pattern string, handler Handler) {
+func (r *Router) Trace(pattern string, handler http.Handler) {
 	r.Handle("TRACE", pattern, handler)
 }
 
 // Options registers an http OPTIONS method receiver with the provided Handler
-func (r *Router) Options(pattern string, handler Handler) {
+func (r *Router) Options(pattern string, handler http.Handler) {
 	r.Handle("OPTIONS", pattern, handler)
 }
 
 // Connect registers an http CONNECT method receiver with the provided Handler
-func (r *Router) Connect(pattern string, handler Handler) {
+func (r *Router) Connect(pattern string, handler http.Handler) {
 	r.Handle("CONNECT", pattern, handler)
 }
 
 // Patch registers an http PATCH method receiver with the provided Handler
-func (r *Router) Patch(pattern string, handler Handler) {
+func (r *Router) Patch(pattern string, handler http.Handler) {
 	r.Handle("PATCH", pattern, handler)
 }
 
 // AnyFunc registers the provided HandlerFunc for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
-func (r *Router) AnyFunc(pattern string, handler HandlerFunc) {
-	r.Any(pattern, HandlerFunc(handler))
+func (r *Router) AnyFunc(pattern string, handler http.HandlerFunc) {
+	r.Any(pattern, http.HandlerFunc(handler))
 }
 
 // GetFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) GetFunc(pattern string, fn HandlerFunc) {
-	r.Get(pattern, HandlerFunc(fn))
+func (r *Router) GetFunc(pattern string, fn http.HandlerFunc) {
+	r.Get(pattern, http.HandlerFunc(fn))
 }
 
 // HeadFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) HeadFunc(pattern string, fn HandlerFunc) {
-	r.Head(pattern, HandlerFunc(fn))
+func (r *Router) HeadFunc(pattern string, fn http.HandlerFunc) {
+	r.Head(pattern, http.HandlerFunc(fn))
 }
 
 // PostFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PostFunc(pattern string, fn HandlerFunc) {
-	r.Post(pattern, HandlerFunc(fn))
+func (r *Router) PostFunc(pattern string, fn http.HandlerFunc) {
+	r.Post(pattern, http.HandlerFunc(fn))
 }
 
 // PutFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PutFunc(pattern string, fn HandlerFunc) {
-	r.Put(pattern, HandlerFunc(fn))
+func (r *Router) PutFunc(pattern string, fn http.HandlerFunc) {
+	r.Put(pattern, http.HandlerFunc(fn))
 }
 
 // DeleteFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) DeleteFunc(pattern string, fn HandlerFunc) {
-	r.Delete(pattern, HandlerFunc(fn))
+func (r *Router) DeleteFunc(pattern string, fn http.HandlerFunc) {
+	r.Delete(pattern, http.HandlerFunc(fn))
 }
 
 // TraceFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) TraceFunc(pattern string, fn HandlerFunc) {
-	r.Trace(pattern, HandlerFunc(fn))
+func (r *Router) TraceFunc(pattern string, fn http.HandlerFunc) {
+	r.Trace(pattern, http.HandlerFunc(fn))
 }
 
 // OptionsFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) OptionsFunc(pattern string, fn HandlerFunc) {
-	r.Options(pattern, HandlerFunc(fn))
+func (r *Router) OptionsFunc(pattern string, fn http.HandlerFunc) {
+	r.Options(pattern, http.HandlerFunc(fn))
 }
 
 // ConnectFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) ConnectFunc(pattern string, fn HandlerFunc) {
-	r.Connect(pattern, HandlerFunc(fn))
+func (r *Router) ConnectFunc(pattern string, fn http.HandlerFunc) {
+	r.Connect(pattern, http.HandlerFunc(fn))
 }
 
 // PatchFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PatchFunc(pattern string, fn HandlerFunc) {
-	r.Patch(pattern, HandlerFunc(fn))
+func (r *Router) PatchFunc(pattern string, fn http.HandlerFunc) {
+	r.Patch(pattern, http.HandlerFunc(fn))
 }
 
 // Use registers middlewares to be used
@@ -245,11 +243,9 @@ func (h negroniHandlerFunc) ServeHTTP(rw http.ResponseWriter, r *http.Request, n
 
 // UseNegroni gives the ability to use Negroni.Handler middlewares as lion.Middlewares
 func (r *Router) UseNegroni(n negroniHandler) {
-	r.Use(MiddlewareFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-			n.ServeHTTP(w, r, HandlerFunc(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
-				next.ServeHTTPC(c, w, r)
-			}).ServeHTTP)
+	r.Use(MiddlewareFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			n.ServeHTTP(w, r, next.ServeHTTP)
 		})
 	}))
 }
@@ -260,22 +256,22 @@ func (r *Router) UseNegroniFunc(n func(rw http.ResponseWriter, r *http.Request, 
 }
 
 // UseHandler gives the ability to add and serve a Handler and serve the next handler
-func (r *Router) UseHandler(handler Handler) {
-	r.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-			handler.ServeHTTPC(c, w, r)
-			next.ServeHTTPC(c, w, r)
+func (r *Router) UseHandler(handler http.Handler) {
+	r.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler.ServeHTTP(w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 }
 
 // UseHandlerFunc is a convenience wrapper for UseHandler
-func (r *Router) UseHandlerFunc(fn HandlerFunc) {
-	r.UseHandler(HandlerFunc(fn))
+func (r *Router) UseHandlerFunc(fn http.HandlerFunc) {
+	r.UseHandler(http.HandlerFunc(fn))
 }
 
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
-func (r *Router) Handle(method, pattern string, handler Handler) {
+func (r *Router) Handle(method, pattern string, handler http.Handler) {
 	var p string
 	if !r.isRoot() && pattern == "/" && r.pattern != "" {
 		p = r.pattern
@@ -291,7 +287,7 @@ func (r *Router) Handle(method, pattern string, handler Handler) {
 
 type registeredHandler struct {
 	host, method, pattern string
-	handler               Handler
+	handler               http.Handler
 }
 
 // Mount mounts a subrouter at the provided pattern
@@ -305,7 +301,7 @@ func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
 	r.host = host
 }
 
-func (r *Router) buildMiddlewares(handler Handler) Handler {
+func (r *Router) buildMiddlewares(handler http.Handler) http.Handler {
 	handler = r.middlewares.BuildHandler(handler)
 	if !r.isRoot() {
 		handler = r.router.buildMiddlewares(handler)
@@ -318,27 +314,20 @@ func (r *Router) isRoot() bool {
 }
 
 // HandleFunc wraps a HandlerFunc and pass it to Handle method
-func (r *Router) HandleFunc(method, pattern string, fn HandlerFunc) {
-	r.Handle(method, pattern, HandlerFunc(fn))
+func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) {
+	r.Handle(method, pattern, http.HandlerFunc(fn))
 }
 
-// ServeHTTP calls ServeHTTPC with a context.Background()
-func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.ServeHTTPC(contextFromRequest(req), w, req)
-}
-
-// ServeHTTPC finds the handler associated with the request's path.
+// ServeHTTP finds the handler associated with the request's path.
 // If it is not found it calls the NotFound handler
-func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.Request) {
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := r.pool.Get().(*Context)
-	ctx.parent = c
+	ctx.parent = req.Context()
 
 	if h := r.router.hostrm.Match(ctx, req); h != nil {
-		req = addContextToRequest(req, ctx)
-		h.ServeHTTPC(ctx, w, req)
+		h.ServeHTTP(w, req.WithContext(ctx))
 	} else {
-		req = addContextToRequest(req, ctx)
-		r.notFound(ctx, w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
+		r.notFound(w, req.WithContext(ctx)) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
 	ctx.Reset()
@@ -346,16 +335,16 @@ func (r *Router) ServeHTTPC(c context.Context, w http.ResponseWriter, req *http.
 }
 
 // NotFound calls NotFoundHandler() if it is set. Otherwise, it calls net/http.NotFound
-func (r *Router) notFound(c context.Context, w http.ResponseWriter, req *http.Request) {
+func (r *Router) notFound(w http.ResponseWriter, req *http.Request) {
 	if r.router.notFoundHandler != nil {
-		r.router.notFoundHandler.ServeHTTPC(c, w, req)
+		r.router.notFoundHandler.ServeHTTP(w, req)
 	} else {
 		http.NotFound(w, req)
 	}
 }
 
 // NotFoundHandler gives the ability to use a specific 404 NOT FOUND handler
-func (r *Router) NotFoundHandler(handler Handler) {
+func (r *Router) NotFoundHandler(handler http.Handler) {
 	r.notFoundHandler = handler
 }
 
@@ -385,7 +374,7 @@ func (r *Router) ServeFile(base, path string) {
 		panic("Lion: ServeFile cannot have url parameters")
 	}
 
-	handler := HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, path)
 	})
 

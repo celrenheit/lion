@@ -1,6 +1,6 @@
 package lion
 
-import "golang.org/x/net/context"
+import "context"
 
 // Check Context implements net.Context
 var _ context.Context = (*Context)(nil)
@@ -10,7 +10,7 @@ var _ context.Context = (*Context)(nil)
 // 	Param(string) string
 // }
 
-// Context implements golang.org/x/net/context.Context and stores values of url parameters
+// Context implements context.Context and stores values of url parameters
 type Context struct {
 	context.Context
 	parent context.Context

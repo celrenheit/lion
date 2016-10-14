@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"golang.org/x/net/context"
 )
 
 type testResource struct{}
@@ -23,31 +21,31 @@ func (tr testResource) OptionsMiddlewares() Middlewares { return Middlewares{new
 func (tr testResource) ConnectMiddlewares() Middlewares { return Middlewares{newTestResMW("Connect")} }
 func (tr testResource) PatchMiddlewares() Middlewares   { return Middlewares{newTestResMW("Patch")} }
 
-func (tr testResource) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Get")
 }
-func (tr testResource) Head(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Head(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Head")
 }
-func (tr testResource) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Post(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Post")
 }
-func (tr testResource) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Put(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Put")
 }
-func (tr testResource) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Delete(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Delete")
 }
-func (tr testResource) Trace(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Trace(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Trace")
 }
-func (tr testResource) Options(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Options(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Options")
 }
-func (tr testResource) Connect(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Connect(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Connect")
 }
-func (tr testResource) Patch(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (tr testResource) Patch(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Patch")
 }
 
@@ -76,10 +74,10 @@ func TestResources(t *testing.T) {
 }
 
 func newTestResMW(header string) Middleware {
-	return MiddlewareFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return MiddlewareFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("foo", header)
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 }

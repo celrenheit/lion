@@ -66,11 +66,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func Home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+func Hello(w http.ResponseWriter, r *http.Request) {
 	name := lion.Param(c, "name")
 	fmt.Fprintf(w, "Hello "+name)
 }
@@ -110,11 +110,11 @@ func (p Products) Base() string {
 	return "/products"
 }
 
-func (p Products) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p Products) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Fetching all products")
 }
 
-func (p Products) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p Products) Post(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Creating a new product")
 }
 
@@ -127,17 +127,17 @@ func (p Products) Routes(r *lion.Router) {
 // It handles getting, editing and deleting a single product
 type OneProduct struct{}
 
-func (p OneProduct) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p OneProduct) Get(w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Getting product: %s", id)
 }
 
-func (p OneProduct) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p OneProduct) Put(w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Updating article: %s", id)
 }
 
-func (p OneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p OneProduct) Delete(w http.ResponseWriter, r *http.Request) {
 	id := lion.Param(c, "id")
 	fmt.Fprintf(w, "Deleting article: %s", id)
 }
@@ -174,7 +174,7 @@ l.Delete("/delete", delete)
 HandlerFuncs shoud have this function signature:
 
 ```go
-func handlerFunc(c context.Context, w http.ResponseWriter, r *http.Request)  {
+func handlerfunc(w http.ResponseWriter, r *http.Request)  {
   fmt.Fprintf(w, "Hi!")
 }
 
@@ -324,10 +324,10 @@ DeleteMiddlewares() Middlewares
 
 
 // HandlerFuncs for each HTTP Methods (Optional)
-Get(c context.Context, w http.ResponseWriter, r *http.Request)
-Post(c context.Context, w http.ResponseWriter, r *http.Request)
-Put(c context.Context, w http.ResponseWriter, r *http.Request)
-Delete(c context.Context, w http.ResponseWriter, r *http.Request)
+Get(w http.ResponseWriter, r *http.Request)
+Post(w http.ResponseWriter, r *http.Request)
+Put(w http.ResponseWriter, r *http.Request)
+Delete(w http.ResponseWriter, r *http.Request)
 ```
 
 **_Example_**:
@@ -341,7 +341,7 @@ func (t todolist) Uses() lion.Middlewares {
 	return lion.Middlewares{lion.NewLogger()}
 }
 
-func (t todolist) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t todolist) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "getting todos")
 }
 
@@ -386,12 +386,12 @@ func (t api) Routes(r *lion.Router) {
 
 // Optional: Attach Get method to this Module.
 // ====> A Module is also a Resource.
-func (t api) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t api) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This also a resource accessible at http://localhost:3000/api")
 }
 
 // Optional: Defining custom routes
-func (t api) CustomRoute(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t api) CustomRoute(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This a custom route for this module http://localhost:3000/api/")
 }
 
@@ -512,7 +512,7 @@ func(next Handler) Handler
 type logger struct{}
 
 func (*logger) ServeNext(next lion.Handler) lion.Handler {
-	return lion.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return lion.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		next.ServeHTTPC(c, w, r)

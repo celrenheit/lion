@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
-	"golang.org/x/net/context"
 )
 
 type todoList struct{}
@@ -18,7 +17,7 @@ func (t todoList) GetMiddlewares() lion.Middlewares {
 	return lion.Middlewares{lion.NewRecovery()}
 }
 
-func (t todoList) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t todoList) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "TODO")
 	// Should be catched by GetMiddlewares()'s Recovery middleware
 	panic("test")

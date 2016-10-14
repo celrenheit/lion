@@ -4,15 +4,13 @@ import (
 	"net/http"
 	"strings"
 
-	"golang.org/x/net/context"
-
 	"github.com/celrenheit/lion/matcher"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
 type RegisterMatcher interface {
-	Register(method, pattern string, handler Handler)
-	Match(*Context, *http.Request) (*Context, Handler)
+	Register(method, pattern string, handler http.Handler)
+	Match(*Context, *http.Request) (*Context, http.Handler)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -41,13 +39,13 @@ func newPathMatcher() *pathMatcher {
 	return r
 }
 
-func (d *pathMatcher) Register(method, pattern string, handler Handler) {
+func (d *pathMatcher) Register(method, pattern string, handler http.Handler) {
 	d.prevalidation(method, pattern)
 
 	d.matcher.Set(pattern, handler, matcher.Tags{method})
 }
 
-func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
+func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, http.Handler) {
 	p := cleanPath(r.URL.Path)
 
 	d.tags[0] = r.Method
@@ -62,7 +60,7 @@ func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, Handler) {
 		return c, nil
 	}
 
-	return c, h.(Handler)
+	return c, h.(http.Handler)
 }
 
 func (d *pathMatcher) prevalidation(method, pattern string) {
@@ -76,7 +74,7 @@ func (d *pathMatcher) prevalidation(method, pattern string) {
 	}
 }
 
-func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) Handler {
+func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) http.Handler {
 	allowed := make([]string, 0, len(allowedHTTPMethods))
 	for _, method := range allowedHTTPMethods {
 		if method == OPTIONS {
@@ -97,7 +95,7 @@ func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) Handler {
 	allowed = append(allowed, OPTIONS)
 
 	joined := strings.Join(allowed, ",")
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Accept", joined)
 		w.WriteHeader(http.StatusOK)
 	})
@@ -113,15 +111,15 @@ func isInStringSlice(slice []string, expected string) bool {
 }
 
 type methodsHandlers struct {
-	get     Handler
-	head    Handler
-	post    Handler
-	put     Handler
-	delete  Handler
-	trace   Handler
-	options Handler
-	connect Handler
-	patch   Handler
+	get     http.Handler
+	head    http.Handler
+	post    http.Handler
+	put     http.Handler
+	delete  http.Handler
+	trace   http.Handler
+	options http.Handler
+	connect http.Handler
+	patch   http.Handler
 }
 
 func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
@@ -131,11 +129,11 @@ func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
 
 	method := tags[0]
 
-	var handler Handler
+	var handler http.Handler
 	if value == nil {
 		handler = nil
 	} else {
-		if h, ok := value.(Handler); !ok {
+		if h, ok := value.(http.Handler); !ok {
 			panicl("Not handler")
 		} else {
 			handler = h
@@ -155,7 +153,7 @@ func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
 	return gs.getHandler(method)
 }
 
-func (gs *methodsHandlers) addHandler(method string, handler Handler) {
+func (gs *methodsHandlers) addHandler(method string, handler http.Handler) {
 	switch method {
 	case GET:
 		gs.get = handler
@@ -178,7 +176,7 @@ func (gs *methodsHandlers) addHandler(method string, handler Handler) {
 	}
 }
 
-func (gs *methodsHandlers) getHandler(method string) Handler {
+func (gs *methodsHandlers) getHandler(method string) http.Handler {
 	switch method {
 	case GET:
 		return gs.get

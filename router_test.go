@@ -11,7 +11,7 @@ import (
 
 	"github.com/celrenheit/htest"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 var (
@@ -46,7 +46,7 @@ func TestRouteMatching(t *testing.T) {
 	routes := []struct {
 		Method  string
 		Pattern string
-		Handler Handler
+		Handler http.Handler
 	}{
 		{Pattern: "/hello", Handler: helloHandler},
 		{Pattern: "/hello/contact", Handler: helloContactHandler},
@@ -76,7 +76,7 @@ func TestRouteMatching(t *testing.T) {
 	tests := []struct {
 		Method          string
 		Input           string
-		ExpectedHandler Handler
+		ExpectedHandler http.Handler
 		ExpectedParams  M
 		ExpectedStatus  int
 	}{
@@ -162,7 +162,7 @@ func TestRouteMatching(t *testing.T) {
 
 type anyHandler struct{}
 
-func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (a anyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprintf(w, "Any::%s", r.Method)
 }
@@ -170,7 +170,7 @@ func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http
 func TestAnyMethod(t *testing.T) {
 
 	l := New()
-	l.AnyFunc("/apifunc", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.AnyFunc("/apifunc", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprintf(w, "AnyFunc::%s", r.Method)
 	})
@@ -193,17 +193,17 @@ func TestAnyMethod(t *testing.T) {
 
 type testmw struct{}
 
-func (m testmw) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (m testmw) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Test-Key", "Test-Value")
-		next.ServeHTTPC(c, w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
 func TestMiddleware(t *testing.T) {
 	mux := New()
 	mux.Use(testmw{})
-	mux.Get("/hi", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.Get("/hi", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hi!"))
 	}))
 	htest.New(t, mux).Get("/hi").Do().ExpectHeader("Test-Key", "Test-Value")
@@ -211,13 +211,13 @@ func TestMiddleware(t *testing.T) {
 
 func TestMiddlewareFunc(t *testing.T) {
 	mux := New()
-	mux.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Test-Value")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
-	mux.Get("/hi", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.Get("/hi", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hi!"))
 	}))
 
@@ -226,7 +226,7 @@ func TestMiddlewareFunc(t *testing.T) {
 
 func TestMiddlewareChain(t *testing.T) {
 	mux := New()
-	mux.UseFunc(func(next Handler) Handler {
+	mux.UseFunc(func(next http.Handler) http.Handler {
 		return nil
 	})
 }
@@ -235,7 +235,7 @@ func TestMountingSubrouter(t *testing.T) {
 	mux := New()
 
 	adminrouter := New()
-	adminrouter.GetFunc("/:id", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	adminrouter.GetFunc("/:id", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("admin", "id")
 	})
 
@@ -249,26 +249,26 @@ func TestGroupSubGroup(t *testing.T) {
 
 	admin := s.Group("/admin")
 	sub := admin.Subrouter()
-	sub.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Get")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	sub.GetFunc("/", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub.GetFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Get"))
 	})
 
 	sub2 := admin.Subrouter()
-	sub2.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub2.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Put")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	sub2.PutFunc("/", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub2.PutFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Put"))
 	})
 
@@ -312,29 +312,29 @@ func TestSubrouter(t *testing.T) {
 
 func TestNamedMiddlewares(t *testing.T) {
 	l := New()
-	l.DefineFunc("admin", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("admin", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "admin")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	l.DefineFunc("public", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("public", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "public")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
 	g := l.Group("/admin")
 	g.UseNamed("admin")
-	g.GetFunc("/test", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	g.GetFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("admintest"))
 	})
 
 	p := l.Group("/public")
 	p.UseNamed("public")
-	p.GetFunc("/test", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	p.GetFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("publictest"))
 	})
 
@@ -483,7 +483,7 @@ func TestAutomaticOptions(t *testing.T) {
 		ExpectHeader("Accept", "")
 
 	// Allow custom options handler
-	l.Options("/api", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.Options("/api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Batman", "Robin")
 		w.WriteHeader(http.StatusFound)
 	}))
@@ -559,18 +559,18 @@ func catchPanic(fn func()) (recv interface{}) {
 // TODO: Find a better way to compare handlers that using a random token
 type fakeHandlerType struct{ t string }
 
-func (f *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
+func (f *fakeHandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
-func fakeHandler() Handler {
+func fakeHandler() http.Handler {
 	return &fakeHandlerType{t: randToken()}
 }
 
 type fakemw struct{ key, val string }
 
-func (f *fakemw) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (f *fakemw) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(f.key, f.val)
-		next.ServeHTTPC(c, w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 

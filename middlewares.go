@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-
-	"golang.org/x/net/context"
 )
 
 var red = color.New(color.FgRed).SprintFunc()
@@ -46,14 +44,14 @@ func NewLogger() *Logger {
 
 // ServeNext implements the Middleware interface for Logger.
 // It wraps the corresponding http.ResponseWriter and saves statistics about the status code returned, the number of bytes written and the time that requests took.
-func (l *Logger) ServeNext(next Handler) Handler {
+func (l *Logger) ServeNext(next http.Handler) http.Handler {
 
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		res := WrapResponseWriter(w)
 		start := time.Now()
 
-		next.ServeHTTPC(c, res, r)
+		next.ServeHTTP(res, r)
 
 		l.Printf("%s %s | %s | %dB in %v from %s", magenta(r.Method), hiBlue(r.URL.Path), statusColor(res.Status()), res.BytesWritten(), timeColor(time.Since(start)), r.RemoteAddr)
 	})
@@ -106,8 +104,8 @@ func NewRecovery() *Recovery {
 }
 
 // ServeNext is the method responsible for recovering from a panic
-func (rec *Recovery) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (rec *Recovery) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -124,7 +122,7 @@ func (rec *Recovery) ServeNext(next Handler) Handler {
 			}
 		}()
 
-		next.ServeHTTPC(c, w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -149,11 +147,11 @@ func NewStatic(directory http.FileSystem) *Static {
 }
 
 // ServeNext tries to find a file in the directory
-func (s *Static) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (s *Static) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method != "GET" && r.Method != "HEAD" {
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -161,26 +159,26 @@ func (s *Static) ServeNext(next Handler) Handler {
 		// if we have a prefix, filter requests by stripping the prefix
 		if s.Prefix != "" {
 			if !strings.HasPrefix(file, s.Prefix) {
-				next.ServeHTTPC(c, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 			file = file[len(s.Prefix):]
 			if file != "" && file[0] != '/' {
-				next.ServeHTTPC(c, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 		}
 		f, err := s.Dir.Open(file)
 		if err != nil {
 			// discard the error?
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 		defer f.Close()
 
 		fi, err := f.Stat()
 		if err != nil {
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -195,14 +193,14 @@ func (s *Static) ServeNext(next Handler) Handler {
 			file = path.Join(file, s.IndexFile)
 			f, err = s.Dir.Open(file)
 			if err != nil {
-				next.ServeHTTPC(c, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 			defer f.Close()
 
 			fi, err = f.Stat()
 			if err != nil || fi.IsDir() {
-				next.ServeHTTPC(c, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 		}
@@ -213,22 +211,22 @@ func (s *Static) ServeNext(next Handler) Handler {
 
 // MaxAge is a middleware that defines the max duration headers
 func MaxAge(dur time.Duration) Middleware {
-	return MaxAgeWithFilter(dur, func(c context.Context, w http.ResponseWriter, r *http.Request) bool { return true })
+	return MaxAgeWithFilter(dur, func(w http.ResponseWriter, r *http.Request) bool { return true })
 }
 
 // MaxAgeWithFilter is a middleware that defines the max duration headers with a filter function.
 // If the filter returns true then the headers will be set. Otherwise, if it returns false the headers will not be set.
-func MaxAgeWithFilter(dur time.Duration, filter func(c context.Context, w http.ResponseWriter, r *http.Request) bool) Middleware {
+func MaxAgeWithFilter(dur time.Duration, filter func(w http.ResponseWriter, r *http.Request) bool) Middleware {
 	if filter == nil {
-		filter = func(c context.Context, w http.ResponseWriter, r *http.Request) bool { return false }
+		filter = func(w http.ResponseWriter, r *http.Request) bool { return false }
 	}
-	return MiddlewareFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-			if !filter(c, w, r) {
+	return MiddlewareFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !filter(w, r) {
 				return
 			}
 			w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", int(dur.Seconds())))
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 }
@@ -261,8 +259,8 @@ type noCache struct {
 	etagHeaders     []string
 }
 
-func (n noCache) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (n noCache) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Delete ETag headers
 		for _, v := range n.etagHeaders {
 			if r.Header.Get(v) != "" {
@@ -298,12 +296,12 @@ var xRealIP = http.CanonicalHeaderKey("X-Real-IP")
 // how you're using RemoteAddr, vulnerable to an attack of some sort).
 // Taken from https://github.com/zenazn/goji/blob/master/web/middleware/realip.go
 func RealIP() Middleware {
-	return MiddlewareFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return MiddlewareFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if rip := realIP(r); rip != "" {
 				r.RemoteAddr = rip
 			}
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 }

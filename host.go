@@ -61,7 +61,7 @@ func (hm *hostMatcher) Register(pattern string) RegisterMatcher {
 	}
 }
 
-func (hm *hostMatcher) Match(c *Context, req *http.Request) Handler {
+func (hm *hostMatcher) Match(c *Context, req *http.Request) http.Handler {
 	if hm.multihost {
 		reversedHost := reverseHost(req.Host)
 		value := hm.matcher.GetWithContext(c, reversedHost, nil)

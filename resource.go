@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 // Resource defines the minimum required methods
@@ -85,63 +83,63 @@ type PatchResourceMiddlewares interface {
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type GetResource interface {
-	Get(c context.Context, w http.ResponseWriter, r *http.Request)
+	Get(w http.ResponseWriter, r *http.Request)
 }
 
 // HeadResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type HeadResource interface {
-	Head(c context.Context, w http.ResponseWriter, r *http.Request)
+	Head(w http.ResponseWriter, r *http.Request)
 }
 
 // PostResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type PostResource interface {
-	Post(c context.Context, w http.ResponseWriter, r *http.Request)
+	Post(w http.ResponseWriter, r *http.Request)
 }
 
 // PutResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type PutResource interface {
-	Put(c context.Context, w http.ResponseWriter, r *http.Request)
+	Put(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type DeleteResource interface {
-	Delete(c context.Context, w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
 }
 
 // TraceResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type TraceResource interface {
-	Trace(c context.Context, w http.ResponseWriter, r *http.Request)
+	Trace(w http.ResponseWriter, r *http.Request)
 }
 
 // OptionsResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type OptionsResource interface {
-	Options(c context.Context, w http.ResponseWriter, r *http.Request)
+	Options(w http.ResponseWriter, r *http.Request)
 }
 
 // ConnectResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type ConnectResource interface {
-	Connect(c context.Context, w http.ResponseWriter, r *http.Request)
+	Connect(w http.ResponseWriter, r *http.Request)
 }
 
 // PatchResource is an interface for defining a HandlerFunc used in Resource method
 // DEPRECATED: These methods will be removed in v2.
 // This should not cause problems since they are already publicly exposed for documentation purpose only.
 type PatchResource interface {
-	Patch(c context.Context, w http.ResponseWriter, r *http.Request)
+	Patch(w http.ResponseWriter, r *http.Request)
 }
 
 // Resource registers a Resource with the corresponding pattern
@@ -160,20 +158,19 @@ func (r *Router) Resource(pattern string, resource Resource) {
 			if mws, ok := isMiddlewareInResource(m, resource); ok {
 				s.Use(mws()...)
 			}
-			s.HandleFunc(m, "/", hfn)
+			s.HandleFunc(m, "/", http.HandlerFunc(hfn))
 		}
 	}
 }
 
-// checks if there is a Name(c context.Context, w http.ResponseWriter, r *http.Request) method available on the Resource r
-func isHandlerFuncInResource(m string, r Resource) (func(c context.Context, w http.ResponseWriter, r *http.Request), bool) {
+// checks if there is a Name(w http.ResponseWriter, r *http.Request) method available on the Resource r
+func isHandlerFuncInResource(m string, r Resource) (func(w http.ResponseWriter, r *http.Request), bool) {
 	name := strings.Title(strings.ToLower(m))
 	method := reflect.ValueOf(r).MethodByName(name)
 	if !method.IsValid() {
 		return nil, false
 	}
-
-	fn, ok := method.Interface().(func(c context.Context, w http.ResponseWriter, r *http.Request))
+	fn, ok := method.Interface().(func(w http.ResponseWriter, r *http.Request))
 	return fn, ok
 }
 

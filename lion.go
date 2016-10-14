@@ -20,11 +20,11 @@
 //		 	"golang.org/x/net/context"
 //		 )
 //
-//		 func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 func Home(w http.ResponseWriter, r *http.Request) {
 //		 	fmt.Fprintf(w, "Home")
 //		 }
 //
-//		 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 func Hello(w http.ResponseWriter, r *http.Request) {
 //		 	name := lion.Param(c, "name")
 //		 	fmt.Fprintf(w, "Hello "+name)
 //		 }
@@ -42,40 +42,18 @@
 //
 package lion
 
-import (
-	"net/http"
-
-	"golang.org/x/net/context"
-)
-
-// Handler responds to an HTTP request
-type Handler interface {
-	ServeHTTPC(context.Context, http.ResponseWriter, *http.Request)
-}
-
-// HandlerFunc is a wrapper for a function to implement the Handler interface
-type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
-
-// ServeHTTP makes HandlerFunc implement net/http.Handler interface
-func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h(contextFromRequest(r), w, r)
-}
-
-// ServeHTTPC makes HandlerFunc implement Handler interface
-func (h HandlerFunc) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {
-	h(c, w, r)
-}
+import "net/http"
 
 // Middleware interface that takes as input a Handler and returns a Handler
 type Middleware interface {
-	ServeNext(Handler) Handler
+	ServeNext(http.Handler) http.Handler
 }
 
 // MiddlewareFunc wraps a function that takes as input a Handler and returns a Handler. So that it implements the Middlewares interface
-type MiddlewareFunc func(Handler) Handler
+type MiddlewareFunc func(http.Handler) http.Handler
 
 // ServeNext makes MiddlewareFunc implement Middleware
-func (m MiddlewareFunc) ServeNext(next Handler) Handler {
+func (m MiddlewareFunc) ServeNext(next http.Handler) http.Handler {
 	return m(next)
 }
 
@@ -83,7 +61,7 @@ func (m MiddlewareFunc) ServeNext(next Handler) Handler {
 type Middlewares []Middleware
 
 // BuildHandler builds a chain of middlewares from a passed Handler and returns a Handler
-func (middlewares Middlewares) BuildHandler(handler Handler) Handler {
+func (middlewares Middlewares) BuildHandler(handler http.Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = middlewares[i].ServeNext(handler)
 	}

@@ -5,25 +5,23 @@ import (
 	"net/http"
 	"path"
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 // Wrap converts an http.Handler to returns a Handler
-func Wrap(h http.Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func Wrap(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
 	})
 }
 
 // WrapFunc converts an http.HandlerFunc to return a Handler
-func WrapFunc(fn http.HandlerFunc) Handler {
+func WrapFunc(fn http.HandlerFunc) http.Handler {
 	return Wrap(http.HandlerFunc(fn))
 }
 
 // UnWrap converts a Handler to an http.Handler
-func UnWrap(h Handler) http.Handler {
-	return HandlerFunc(h.ServeHTTPC)
+func UnWrap(h http.Handler) http.Handler {
+	return http.HandlerFunc(h.ServeHTTP)
 }
 
 func cleanPath(p string) string {

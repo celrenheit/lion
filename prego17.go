@@ -5,7 +5,7 @@ package lion
 import (
 	"net/http"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 func contextFromRequest(r *http.Request) context.Context {

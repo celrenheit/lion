@@ -1,10 +1,10 @@
 package matcher
 
-import "golang.org/x/net/context"
+import "context"
 
 // Check Context implements net.Context
 
-// Context implements golang.org/x/net/context.Context and stores values of url parameters
+// Context implements context.Context and stores values of url parameters
 type Context interface {
 	context.Context
 	Param(key string) string

@@ -3,8 +3,6 @@ package main
 import (
 	"net/http"
 
-	"golang.org/x/net/context"
-
 	"github.com/celrenheit/lion"
 )
 
@@ -45,7 +43,7 @@ func main() {
 }
 
 func handler(name string) lion.Handler {
-	return lion.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return lion.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(name))
 	})
 }

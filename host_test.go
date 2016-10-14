@@ -26,7 +26,7 @@ func TestHostMatcher(t *testing.T) {
 
 	toRegister := []struct {
 		pattern string
-		handler Handler
+		handler http.Handler
 	}{
 		{pattern: "test.batman.com", handler: staticH},
 		{pattern: "$demo.batman.com", handler: demoH},
@@ -52,7 +52,7 @@ func TestHostMatcher(t *testing.T) {
 	tests := []struct {
 		input           string
 		expectedParams  M
-		expectedHandler Handler
+		expectedHandler http.Handler
 	}{
 		{
 			input: "test.batman.com", expectedParams: M{},
