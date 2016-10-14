@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/celrenheit/lion/matcher"
+	"github.com/celrenheit/lion/internal/matcher"
 )
 
 const (

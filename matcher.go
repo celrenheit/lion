@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/celrenheit/lion/matcher"
+	"github.com/celrenheit/lion/internal/matcher"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
