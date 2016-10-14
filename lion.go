@@ -17,7 +17,7 @@
 //		 	"net/http"
 //
 //		 	"github.com/celrenheit/lion"
-//		 	"golang.org/x/net/context"
+//		 	"context"
 //		 )
 //
 //		 func Home(w http.ResponseWriter, r *http.Request) {
