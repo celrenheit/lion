@@ -13,14 +13,14 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	ctx := lion.C(c)
-	fmt.Fprintf(w, "Hello "+ctx.Param("name"))
+	name := lion.Param(r.Context(), "name")
+	fmt.Fprintf(w, "Hello %s", name)
 }
 
 type logger struct{}
 
-func (*logger) ServeNext(next lion.Handler) lion.Handler {
-	return lion.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (*logger) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		next.ServeHTTP(w, r)

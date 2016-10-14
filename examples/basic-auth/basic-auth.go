@@ -19,8 +19,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func basicAuthMiddleware(next lion.Handler) lion.Handler {
-	return lion.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func basicAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
 		if strings.HasPrefix(auth, basicAuthPrefix) {
