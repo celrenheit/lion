@@ -231,43 +231,14 @@ func (r *Router) UseFunc(middlewareFuncs ...MiddlewareFunc) {
 	}
 }
 
-type negroniHandler interface {
-	ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
-}
-
-type negroniHandlerFunc func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
-
-func (h negroniHandlerFunc) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	h(rw, r, next)
-}
-
-// UseNegroni gives the ability to use Negroni.Handler middlewares as lion.Middlewares
-func (r *Router) UseNegroni(n negroniHandler) {
-	r.Use(MiddlewareFunc(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			n.ServeHTTP(w, r, next.ServeHTTP)
-		})
-	}))
-}
-
-// UseNegroniFunc is a convenience wrapper for UseNegroni to Negroni.HandlerFunc
-func (r *Router) UseNegroniFunc(n func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)) {
-	r.UseNegroni(negroniHandlerFunc(n))
-}
-
-// UseHandler gives the ability to add and serve a Handler and serve the next handler
-func (r *Router) UseHandler(handler http.Handler) {
-	r.UseFunc(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			handler.ServeHTTP(w, r)
-			next.ServeHTTP(w, r)
-		})
-	})
-}
-
-// UseHandlerFunc is a convenience wrapper for UseHandler
-func (r *Router) UseHandlerFunc(fn http.HandlerFunc) {
-	r.UseHandler(http.HandlerFunc(fn))
+func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)) {
+	for _, fn := range funcs {
+		r.Use(MiddlewareFunc(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fn(w, r, next.ServeHTTP)
+			})
+		}))
+	}
 }
 
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
