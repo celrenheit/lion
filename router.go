@@ -321,7 +321,7 @@ func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) {
 // ServeHTTP finds the handler associated with the request's path.
 // If it is not found it calls the NotFound handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := r.pool.Get().(*Context)
+	ctx := r.pool.Get().(*ctx)
 	ctx.parent = req.Context()
 
 	if h := r.router.hostrm.Match(ctx, req); h != nil {

@@ -10,7 +10,7 @@ import (
 // RegisterMatcher registers and matches routes to Handlers
 type registerMatcher interface {
 	Register(method, pattern string, handler http.Handler)
-	Match(*Context, *http.Request) (*Context, http.Handler)
+	Match(*ctx, *http.Request) (*ctx, http.Handler)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -45,7 +45,7 @@ func (d *pathMatcher) Register(method, pattern string, handler http.Handler) {
 	d.matcher.Set(pattern, handler, matcher.Tags{method})
 }
 
-func (d *pathMatcher) Match(c *Context, r *http.Request) (*Context, http.Handler) {
+func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 	p := cleanPath(r.URL.Path)
 
 	d.tags[0] = r.Method
@@ -74,7 +74,7 @@ func (d *pathMatcher) prevalidation(method, pattern string) {
 	}
 }
 
-func (d *pathMatcher) automaticOptionsHandler(c *Context, path string) http.Handler {
+func (d *pathMatcher) automaticOptionsHandler(c *ctx, path string) http.Handler {
 	allowed := make([]string, 0, len(allowedHTTPMethods))
 	for _, method := range allowedHTTPMethods {
 		if method == OPTIONS {

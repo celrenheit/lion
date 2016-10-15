@@ -128,7 +128,7 @@ func TestRouteMatching(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest(method, test.Input, nil)
-		c := &Context{
+		c := &ctx{
 			parent: context.TODO(),
 		}
 		h := mux.hostrm.Match(c, req)
