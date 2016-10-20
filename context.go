@@ -2,6 +2,9 @@ package lion
 
 import "context"
 
+// Context key to store *ctx
+var ctxKey = &struct{}{}
+
 // Check Context implements net.Context
 var _ context.Context = (*ctx)(nil)
 var _ Context = (*ctx)(nil)
@@ -99,9 +102,11 @@ func (p *ctx) indexOf(key string) int {
 }
 
 // C returns a Context based on a context.Context passed. If it does not convert to Context, it creates a new one with the context passed as argument.
-func C(c context.Context) *ctx {
-	if ctx, ok := c.(*ctx); ok {
-		return ctx
+func C(c context.Context) Context {
+	if val := c.Value(ctxKey); val != nil {
+		if ctx, ok := val.(*ctx); ok {
+			return ctx
+		}
 	}
 	return NewContextWithParent(c)
 }

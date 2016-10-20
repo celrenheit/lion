@@ -54,7 +54,8 @@ func TestContextAddParam(t *testing.T) {
 
 func TestContextC(t *testing.T) {
 	c := C(context.TODO())
-	if c.parent != context.TODO() {
+	ctx := c.(*ctx)
+	if ctx.parent != context.TODO() {
 		t.Error("Context C: Parent should be context.TODO()")
 	}
 }
@@ -62,8 +63,20 @@ func TestContextC(t *testing.T) {
 func TestGetParamInNestedContext(t *testing.T) {
 	c := NewContextWithParent(context.Background())
 	c.AddParam("id", "myid")
-	nc := context.WithValue(c, "db", "mydb")
+
+	base := context.WithValue(context.Background(), ctxKey, c)
+	nc := context.WithValue(base, "db", "mydb")
 	nc = context.WithValue(nc, "t", "t")
+
+	pc := nc.Value(ctxKey)
+	if pc == nil {
+		t.Errorf("Should not be nil")
+	}
+
+	if _, ok := pc.(*ctx); !ok {
+		t.Errorf("Should be a *ctx")
+	}
+
 	id := Param(nc, "id")
 	if id != "myid" {
 		t.Errorf("id should be equal to 'myid' but got '%s'", id)

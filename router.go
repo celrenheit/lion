@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path"
@@ -296,9 +297,13 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx.parent = req.Context()
 
 	if h := r.router.hostrm.Match(ctx, req); h != nil {
-		h.ServeHTTP(w, req.WithContext(ctx))
+		// We set the context only if there is a match
+		nc := context.WithValue(req.Context(), ctxKey, ctx)
+		req = req.WithContext(nc)
+
+		h.ServeHTTP(w, req)
 	} else {
-		r.notFound(w, req.WithContext(ctx)) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
+		r.notFound(w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
 	ctx.Reset()
