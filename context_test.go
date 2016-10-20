@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"net/http"
 	"testing"
 
 	"context"
@@ -18,7 +19,7 @@ func (p *ctx) toMap() mss {
 }
 
 func TestContextAddParam(t *testing.T) {
-	c := NewContext()
+	c := newContext()
 	c.parent = context.WithValue(context.TODO(), "parentKey", "parentVal")
 	c.AddParam("key", "val")
 	if len(c.keys) != 1 {
@@ -53,22 +54,27 @@ func TestContextAddParam(t *testing.T) {
 }
 
 func TestContextC(t *testing.T) {
-	c := C(context.TODO())
+	req, _ := http.NewRequest("GET", "/", nil)
+	c := C(req)
 	ctx := c.(*ctx)
-	if ctx.parent != context.TODO() {
+	if ctx.parent != context.Background() {
 		t.Error("Context C: Parent should be context.TODO()")
 	}
 }
 
 func TestGetParamInNestedContext(t *testing.T) {
-	c := NewContextWithParent(context.Background())
+	req, _ := http.NewRequest("GET", "/", nil)
+	c := newContextWithParent(context.Background())
 	c.AddParam("id", "myid")
+	req = req.WithContext(c)
 
 	base := context.WithValue(context.Background(), ctxKey, c)
 	nc := context.WithValue(base, "db", "mydb")
 	nc = context.WithValue(nc, "t", "t")
+	req = req.WithContext(nc)
 
-	pc := nc.Value(ctxKey)
+	testc := req.Context()
+	pc := testc.Value(ctxKey)
 	if pc == nil {
 		t.Errorf("Should not be nil")
 	}
@@ -77,17 +83,17 @@ func TestGetParamInNestedContext(t *testing.T) {
 		t.Errorf("Should be a *ctx")
 	}
 
-	id := Param(nc, "id")
+	id := Param(req, "id")
 	if id != "myid" {
 		t.Errorf("id should be equal to 'myid' but got '%s'", id)
 	}
 
-	nonexistant := Param(nc, "nonexistant")
+	nonexistant := Param(req, "nonexistant")
 	if nonexistant != "" {
 		t.Errorf("Should be empty but got '%s'", nonexistant)
 	}
 
-	val := nc.Value("db")
+	val := testc.Value("db")
 	v, ok := val.(string)
 	if !ok {
 		t.Errorf("Should be a string")

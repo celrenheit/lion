@@ -1,6 +1,9 @@
 package lion
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
 // Context key to store *ctx
 var ctxKey = &struct{}{}
@@ -24,13 +27,13 @@ type ctx struct {
 	values []string
 }
 
-// NewContext creates a new context instance
-func NewContext() *ctx {
-	return NewContextWithParent(context.Background())
+// newContext creates a new context instance
+func newContext() *ctx {
+	return newContextWithParent(context.Background())
 }
 
-// NewContextWithParent creates a new context with a parent context specified
-func NewContextWithParent(c context.Context) *ctx {
+// newContextWithParent creates a new context with a parent context specified
+func newContextWithParent(c context.Context) *ctx {
 	return &ctx{
 		parent: c,
 	}
@@ -102,16 +105,22 @@ func (p *ctx) indexOf(key string) int {
 }
 
 // C returns a Context based on a context.Context passed. If it does not convert to Context, it creates a new one with the context passed as argument.
-func C(c context.Context) Context {
+func C(req *http.Request) Context {
+	c := req.Context()
 	if val := c.Value(ctxKey); val != nil {
 		if ctx, ok := val.(*ctx); ok {
 			return ctx
 		}
 	}
-	return NewContextWithParent(c)
+	return newContextWithParent(c)
 }
 
 // Param returns the value of a url param base on the passed context
-func Param(c context.Context, key string) string {
-	return C(c).Param(key)
+func Param(req *http.Request, key string) string {
+	return C(req).Param(key)
+}
+
+func setParamContext(req *http.Request, c Context) *http.Request {
+	pc := context.WithValue(req.Context(), ctxKey, c)
+	return req.WithContext(pc)
 }

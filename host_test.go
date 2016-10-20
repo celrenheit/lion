@@ -114,15 +114,16 @@ func TestHostMatcher(t *testing.T) {
 
 	for _, test := range tests {
 		req, _ := http.NewRequest("GET", "http://"+test.input, nil)
-		c := NewContext()
+		c := newContext()
 		h := hm.Match(c, req)
+		req = setParamContext(req, c)
 
 		if len(test.expectedParams) != len(c.keys) {
 			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.keys), c.toMap(), test.input)
 		}
 
 		for k, v := range test.expectedParams {
-			actual := Param(c, k)
+			actual := Param(req, k)
 			if actual != v {
 				t.Errorf("Expected key %s to equal %s but got %s for host: %s", cyan(k), green(v), red(actual), test.input)
 			}

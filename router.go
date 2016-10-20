@@ -1,7 +1,6 @@
 package lion
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"path"
@@ -93,7 +92,7 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 func newCtxPool() sync.Pool {
 	return sync.Pool{
 		New: func() interface{} {
-			return NewContext()
+			return newContext()
 		},
 	}
 }
@@ -298,8 +297,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if h := r.router.hostrm.Match(ctx, req); h != nil {
 		// We set the context only if there is a match
-		nc := context.WithValue(req.Context(), ctxKey, ctx)
-		req = req.WithContext(nc)
+		req = setParamContext(req, ctx)
 
 		h.ServeHTTP(w, req)
 	} else {

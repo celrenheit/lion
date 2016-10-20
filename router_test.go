@@ -133,6 +133,7 @@ func TestRouteMatching(t *testing.T) {
 			parent: context.TODO(),
 		}
 		h := mux.hostrm.Match(c, req)
+		req = setParamContext(req, c)
 
 		if len(test.ExpectedParams) != len(c.keys) {
 			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.keys), c.toMap(), test.Input)
@@ -140,7 +141,7 @@ func TestRouteMatching(t *testing.T) {
 
 		// Compare params
 		for k, v := range test.ExpectedParams {
-			actual := Param(c, k)
+			actual := Param(req, k)
 			if actual != v {
 				t.Errorf("Expected key %s to equal %s but got %s for url: %s", cyan(k), green(v), red(actual), test.Input)
 			}
