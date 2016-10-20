@@ -6,6 +6,17 @@ import (
 	"context"
 )
 
+// mss is an alias for map[string]string.
+type mss map[string]string
+
+func (p *ctx) toMap() mss {
+	m := mss{}
+	for i := range p.keys {
+		m[p.keys[i]] = p.values[i]
+	}
+	return m
+}
+
 func TestContextAddParam(t *testing.T) {
 	c := NewContext()
 	c.parent = context.WithValue(context.TODO(), "parentKey", "parentVal")

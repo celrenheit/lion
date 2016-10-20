@@ -73,14 +73,6 @@ func (p *ctx) ParamOk(key string) (string, bool) {
 	return "", false
 }
 
-func (p *ctx) toMap() M {
-	m := M{}
-	for i := range p.keys {
-		m[p.keys[i]] = p.values[i]
-	}
-	return m
-}
-
 func (p *ctx) Reset() {
 	p.keys = p.keys[:0]
 	p.values = p.values[:0]

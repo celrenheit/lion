@@ -67,6 +67,3 @@ func (middlewares Middlewares) BuildHandler(handler http.Handler) http.Handler {
 	}
 	return handler
 }
-
-// M is an alias for map[string]string.
-type M map[string]string

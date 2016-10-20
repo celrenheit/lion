@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	emptyParams = M{}
+	emptyParams = mss{}
 )
 
 func TestRouteMatching(t *testing.T) {
@@ -78,37 +78,37 @@ func TestRouteMatching(t *testing.T) {
 		Method          string
 		Input           string
 		ExpectedHandler http.Handler
-		ExpectedParams  M
+		ExpectedParams  mss
 		ExpectedStatus  int
 	}{
 		{Input: "/hello", ExpectedHandler: helloHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "batman"}},
-		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "dot.inthemiddle"}},
-		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: M{"name": "batman"}},
-		{Input: "/hello/batman/tweets/123", ExpectedHandler: helloNameGetTweetHandler, ExpectedParams: M{"name": "batman", "id": "123"}},
+		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "batman"}},
+		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "dot.inthemiddle"}},
+		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "batman"}},
+		{Input: "/hello/batman/tweets/123", ExpectedHandler: helloNameGetTweetHandler, ExpectedParams: mss{"name": "batman", "id": "123"}},
 		{Input: "/carts", ExpectedHandler: cartsHandler, ExpectedParams: emptyParams},
-		{Input: "/carts/123456", ExpectedHandler: getCartHandler, ExpectedParams: M{"cartid": "123456"}},
+		{Input: "/carts/123456", ExpectedHandler: getCartHandler, ExpectedParams: mss{"cartid": "123456"}},
 		{Input: "/hello/contact", ExpectedHandler: helloContactHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named", ExpectedHandler: helloContactNamedHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named/deeper", ExpectedHandler: helloContactNamedDeeperHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: M{"param": "batman"}},
-		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: M{"dest": "nameddd"}},
-		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: M{"dest": "batman"}},
-		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: M{"dest": "batman"}},
-		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: M{"dest": "batman", "from": "robin"}},
-		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "path": "folder/subfolder/file"}},
-		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: M{"file": "batman", "ext": "jpg"}},
-		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: M{"username": "celrenheit"}},
-		{Input: "/mail@test.com", ExpectedHandler: mailAtHandler, ExpectedParams: M{"domain": "test.com"}},
-		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
-		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: M{"userID": "123"}},
-		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: M{"*": "123/okay/yes"}},
-		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: M{"*": "123/okay/yes"}},
-		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: M{"*": ""}},
+		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: mss{"param": "batman"}},
+		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
+		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "batman"}},
+		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "batman", "from": "robin"}},
+		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "batman", "path": "folder/subfolder/file"}},
+		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: mss{"file": "batman", "ext": "jpg"}},
+		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: mss{"username": "celrenheit"}},
+		{Input: "/mail@test.com", ExpectedHandler: mailAtHandler, ExpectedParams: mss{"domain": "test.com"}},
+		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: mss{"*": "unkownpath/subfolder"}},
+		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: mss{"userID": "123"}},
+		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: mss{"*": "123/okay/yes"}},
+		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: mss{"*": "123/okay/yes"}},
+		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: mss{"*": ""}},
 		{Input: "/carts404", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
 		{Input: "/α", ExpectedHandler: unicodeAlphaHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "أسد"}},
-		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: M{"name": "أسد"}},
+		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "أسد"}},
+		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "أسد"}},
 	}
 
 	mux := New()
@@ -584,6 +584,8 @@ func randToken() string {
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }
+
+// Test utils
 
 var red = color.New(color.FgRed).SprintFunc()
 var green = color.New(color.FgGreen).SprintFunc()

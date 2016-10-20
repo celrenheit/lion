@@ -51,27 +51,27 @@ func TestHostMatcher(t *testing.T) {
 
 	tests := []struct {
 		input           string
-		expectedParams  M
+		expectedParams  mss
 		expectedHandler http.Handler
 	}{
 		{
-			input: "test.batman.com", expectedParams: M{},
+			input: "test.batman.com", expectedParams: mss{},
 			expectedHandler: staticH,
 		},
 		{
-			input: "admin.batman.com", expectedParams: M{"demo": "admin"},
+			input: "admin.batman.com", expectedParams: mss{"demo": "admin"},
 			expectedHandler: demoH,
 		},
 		{
-			input: "forever.batman.com", expectedParams: M{"demo": "forever"},
+			input: "forever.batman.com", expectedParams: mss{"demo": "forever"},
 			expectedHandler: demoH,
 		},
 		{
-			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
+			input: "this.is.admin.batman.com", expectedParams: mss{"*": "this.is.admin"},
 			expectedHandler: wildH,
 		},
 		{
-			input: "batman.org:8080", expectedParams: M{"tld": "org", "port": "8080"},
+			input: "batman.org:8080", expectedParams: mss{"tld": "org", "port": "8080"},
 			expectedHandler: tldPortH,
 		},
 
@@ -85,11 +85,11 @@ func TestHostMatcher(t *testing.T) {
 			expectedHandler: staticPortH,
 		},
 		{
-			input: "localhost:3000", expectedParams: M{"port": "3000"},
+			input: "localhost:3000", expectedParams: mss{"port": "3000"},
 			expectedHandler: portH,
 		},
 		{
-			input: "test.sub.localhost:8080", expectedParams: M{"*": "test.sub", "port": "8080"},
+			input: "test.sub.localhost:8080", expectedParams: mss{"*": "test.sub", "port": "8080"},
 			expectedHandler: wildSubPortH,
 		},
 
@@ -99,15 +99,15 @@ func TestHostMatcher(t *testing.T) {
 			expectedHandler: ipv4H,
 		},
 		{
-			input: "01.99.03.04", expectedParams: M{"second": "99"},
+			input: "01.99.03.04", expectedParams: mss{"second": "99"},
 			expectedHandler: ipv4ParamH,
 		},
 		{
-			input: "192.168.03.04", expectedParams: M{"*": "192.168"},
+			input: "192.168.03.04", expectedParams: mss{"*": "192.168"},
 			expectedHandler: ipv4WildH,
 		},
 		{
-			input: "192.168.03.04:3000", expectedParams: M{"*": "192.168", "port": "3000"},
+			input: "192.168.03.04:3000", expectedParams: mss{"*": "192.168", "port": "3000"},
 			expectedHandler: ipv4WildParamH,
 		},
 	}
