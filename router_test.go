@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/celrenheit/htest"
+	"github.com/fatih/color"
 
 	"context"
 )
@@ -583,3 +584,7 @@ func randToken() string {
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }
+
+var red = color.New(color.FgRed).SprintFunc()
+var green = color.New(color.FgGreen).SprintFunc()
+var cyan = color.New(color.FgCyan).SprintFunc()
