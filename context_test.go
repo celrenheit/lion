@@ -64,12 +64,12 @@ func TestContextC(t *testing.T) {
 
 func TestGetParamInNestedContext(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
-	c := newContextWithParent(context.Background())
-	c.AddParam("id", "myid")
-	req = req.WithContext(c)
 
-	base := context.WithValue(context.Background(), ctxKey, c)
-	nc := context.WithValue(base, "db", "mydb")
+	c := newContext()
+	c.AddParam("id", "myid")
+	c.parent = req.Context()
+
+	nc := context.WithValue(c, "db", "mydb")
 	nc = context.WithValue(nc, "t", "t")
 	req = req.WithContext(nc)
 

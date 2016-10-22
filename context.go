@@ -41,6 +41,10 @@ func newContextWithParent(c context.Context) *ctx {
 
 // Value returns the value for the passed key. If it is not found in the url params it returns parent's context Value
 func (p *ctx) Value(key interface{}) interface{} {
+	if key == ctxKey {
+		return p
+	}
+
 	if k, ok := key.(string); ok {
 		if val, exist := p.ParamOk(k); exist {
 			return val
@@ -120,7 +124,7 @@ func Param(req *http.Request, key string) string {
 	return C(req).Param(key)
 }
 
-func setParamContext(req *http.Request, c Context) *http.Request {
-	pc := context.WithValue(req.Context(), ctxKey, c)
-	return req.WithContext(pc)
+func setParamContext(req *http.Request, c *ctx) *http.Request {
+	c.parent = req.Context()
+	return req.WithContext(c)
 }
