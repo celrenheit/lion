@@ -26,10 +26,12 @@ type pathMatcher struct {
 
 func newPathMatcher() *pathMatcher {
 	cfg := &matcher.Config{
-		ParamChar:        ':',
-		WildcardChar:     '*',
-		Separators:       "/.",
-		GetSetterCreator: &creator{},
+		ParamChar:    ':',
+		WildcardChar: '*',
+		Separators:   "/.",
+		New: func() matcher.GetSetter {
+			return &methodsHandlers{}
+		},
 	}
 
 	r := &pathMatcher{
@@ -199,10 +201,4 @@ func (gs *methodsHandlers) getHandler(method string) http.Handler {
 	default:
 		return nil
 	}
-}
-
-type creator struct{}
-
-func (c *creator) New() matcher.GetSetter {
-	return &methodsHandlers{}
 }

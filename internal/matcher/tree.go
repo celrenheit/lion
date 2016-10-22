@@ -43,9 +43,9 @@ func (t *tree) setValue(n *node, value interface{}, tags Tags) {
 	n.values = value
 	n.tags = tags
 
-	if t.cfg.GetSetterCreator != nil {
+	if t.cfg.New != nil {
 		if n.GetSetter == nil {
-			n.GetSetter = t.cfg.GetSetterCreator.New()
+			n.GetSetter = t.cfg.New()
 		}
 	}
 

@@ -6,10 +6,6 @@ type Matcher interface {
 	GetWithContext(c Context, pattern string, tags Tags) interface{}
 }
 
-type GetSetterCreator interface {
-	New() GetSetter
-}
-
 type GetSetter interface {
 	Set(value interface{}, tags Tags)
 	Get(tags Tags) interface{}
@@ -23,8 +19,8 @@ type Config struct {
 	ParamChar        byte
 	WildcardChar     byte
 	Separators       string
-	GetSetterCreator GetSetterCreator
 	ParamTransformer ParamTransformer
+	New              func() GetSetter
 }
 
 type matcher struct {

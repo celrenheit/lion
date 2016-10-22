@@ -21,10 +21,14 @@ type hostMatcher struct {
 
 func newHostMatcher() *hostMatcher {
 	cfg := &matcher.Config{
-		ParamChar:        '$',
-		WildcardChar:     '*',
-		Separators:       ".:",
-		GetSetterCreator: &hscreator{},
+		ParamChar:    '$',
+		WildcardChar: '*',
+		Separators:   ".:",
+		New: func() matcher.GetSetter {
+			return &hostStore{
+				rm: newPathMatcher(),
+			}
+		},
 		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
@@ -101,14 +105,6 @@ func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
 
 func (hs *hostStore) Get(tags matcher.Tags) interface{} {
 	return hs.rm
-}
-
-type hscreator struct{}
-
-func (c *hscreator) New() matcher.GetSetter {
-	return &hostStore{
-		rm: newPathMatcher(),
-	}
 }
 
 type hostParamTransformer struct {
