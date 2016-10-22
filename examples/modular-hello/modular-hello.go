@@ -40,16 +40,16 @@ func (p products) Routes(r *lion.Router) {
 type oneProduct struct{}
 
 func (p oneProduct) Get(w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(r.Context(), "id")
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Getting product: %s", id)
 }
 
 func (p oneProduct) Put(w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(r.Context(), "id")
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Updating article: %s", id)
 }
 
 func (p oneProduct) Delete(w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(r.Context(), "id")
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Deleting article: %s", id)
 }
