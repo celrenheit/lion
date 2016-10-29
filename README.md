@@ -6,16 +6,10 @@ Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares fo
 
 ## Lion v2
 
-If you are starting a new project, please consider starting out using the [_v2_](http://gopkg.in/celrenheit/lion.v2) branch. It contains a few breaking changes.
+If you are starting a new project, please consider starting out using the [_v2_](https://github.com/celrenheit/lion/tree/v2) 
+and the new [documentation](https://godoc.org/gopkg.in/celrenheit/lion.v2) branch. It contains a few breaking changes.
 
 The most important one is that it now uses native [http.Handler](https://golang.org/pkg/net/http/#Handler).
-
-To install v2:
-```
-go get -u gopkg.in/celrenheit/lion.v2
-```
-
-**Note:** The above import path might change until the release of v2.
 
 ## Features
 
