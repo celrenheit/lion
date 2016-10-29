@@ -13,75 +13,35 @@ const (
 
 type node struct {
 	nodeType    nodeType
+	pname       string
 	pattern     string
-	children    typesToNodes
 	label       byte
 	endinglabel byte
-	pname       string
-	values      interface{}
-	tags        Tags
 	GetSetter   GetSetter
-}
 
-func (n *node) getEdge(label byte) *node {
-	for _, nds := range n.children {
-		for _, n := range nds {
-			if n.label == label {
-				return n
-			}
-		}
-	}
+	parent *node
 
-	return nil
-}
-
-func (n *node) replaceChild(label byte, child *node) {
-	for i := 0; i < len(n.children[child.nodeType]); i++ {
-		if n.children[child.nodeType][i].label == label {
-			n.children[child.nodeType][i] = child
-			n.children[child.nodeType][i].label = label
-			return
-		}
-	}
-
-	panic("cannot replace child")
-}
-
-func (n *node) findEdge(ndtype nodeType, label byte) *node {
-	nds := n.children[ndtype]
-	l := len(nds)
-	idx := 0
-
-LOOP:
-	for ; idx < l; idx++ {
-		switch ndtype {
-		case static:
-			if nds[idx].label >= label {
-				break LOOP
-			}
-		default:
-			break LOOP
-		}
-	}
-
-	if idx >= l {
-		return nil
-	}
-	node := nds[idx]
-	if node.nodeType == static && node.label == label {
-		return node
-	} else if node.nodeType > static {
-		return node
-	}
-	return nil
-}
-
-func (n *node) isEdge() bool {
-	return n.label != 0
+	staticChildren nodes
+	paramChild     *node
+	anyChild       *node
 }
 
 func (n *node) longestPrefix(pattern string) int {
 	return longestPrefix(n.pattern, pattern)
+}
+
+func (n *node) children() nodes {
+	children := make([]*node, 0, len(n.staticChildren)+2)
+	for _, staticChild := range n.staticChildren {
+		children = append(children, staticChild)
+	}
+	if n.paramChild != nil {
+		children = append(children, n.paramChild)
+	}
+	if n.anyChild != nil {
+		children = append(children, n.anyChild)
+	}
+	return children
 }
 
 type nodes []*node
@@ -91,17 +51,53 @@ func (ns nodes) Less(i, j int) bool { return ns[i].label < ns[j].label }
 func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Sort()              { sort.Sort(ns) }
 
-type typesToNodes [wildcard + 1]nodes
+func (n *node) path() string {
+	if n.parent == nil {
+		return n.pattern
+	}
 
-func (tps typesToNodes) isEmpty() bool {
-	return tps.isEmptyStartingWith(static)
+	return n.parent.path() + n.pattern
 }
 
-func (tps typesToNodes) isEmptyStartingWith(t nodeType) bool {
-	for i := t; i < wildcard+1; i++ {
-		if len(tps[i]) > 0 {
-			return false
+func (n *node) root() *node {
+	if n.parent == nil {
+		return n
+	}
+
+	return n.parent.root()
+}
+
+func (n *node) setStaticChild(label byte, child *node) {
+	if n.staticChildren == nil {
+		n.staticChildren = nodes{}
+	}
+
+	if _, ok := n.getStaticChild(label); ok {
+		n.removeLabel(label)
+	}
+
+	n.staticChildren = append(n.staticChildren, child)
+	n.staticChildren.Sort()
+}
+
+func (n *node) removeLabel(label byte) {
+	for i, c := range n.staticChildren {
+		if c.label == label {
+			n.staticChildren = append(n.staticChildren[:i], n.staticChildren[i+1:]...)
+			return
 		}
 	}
-	return true
+	panic("Should not be accessible. If the issue persist, please report an issue.")
+}
+
+func (n *node) getStaticChild(label byte) (child *node, ok bool) {
+	for _, c := range n.staticChildren {
+		if c.label == label {
+			return c, true
+		} else if c.label > label {
+			return nil, false
+		}
+	}
+
+	return nil, false
 }

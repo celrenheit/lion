@@ -1,6 +1,9 @@
 package matcher
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type tree struct {
 	root *node
@@ -40,9 +43,6 @@ func (t *tree) AllChars() string {
 }
 
 func (t *tree) setValue(n *node, value interface{}, tags Tags) {
-	n.values = value
-	n.tags = tags
-
 	if t.cfg.New != nil {
 		if n.GetSetter == nil {
 			n.GetSetter = t.cfg.New()
@@ -62,15 +62,11 @@ func newTree(cfg *Config) *tree {
 }
 
 func (t *tree) getValue(n *node, tags Tags) interface{} {
-	if n.values == nil {
+	if n.GetSetter == nil {
 		return nil
 	}
 
-	if n.GetSetter != nil {
-		return n.GetSetter.Get(tags)
-	} else {
-		return n.values
-	}
+	return n.GetSetter.Get(tags)
 }
 
 func (t *tree) isLeaf(n *node, tags Tags) bool {
@@ -78,270 +74,354 @@ func (t *tree) isLeaf(n *node, tags Tags) bool {
 }
 
 func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
-	root := tree.root
+	n := tree.root
 	search := path
 
-	// Stores the previous node, search path and the previous i
-	prev := tree.root
-	prevsearch := ""
-	previ := 0
-	prevparam := ""
+	// Store the previous elements
+	var (
+		prev       *node    = n
+		prevstep   nodeType = static
+		prevsearch string
+		prevparam  string
+	)
 
-LOOP:
 	for {
-		if len(search) == 0 && root.children.isEmpty() {
+
+		if search == "" && tree.isLeaf(n, tags) {
+			out = n
 			break
 		}
 
-		l := len(root.children)
-		for i := 0; i < l; i++ {
-			t := nodeType(i)
-
-			if len(root.children[i]) == 0 {
-				// If the searched path does not start with the current pattern and there are no children greather than the current nodeType.
-				// Then go back to the previous(parent) node and search for childs of the next nodeType.
-				if !strings.HasPrefix(search, root.pattern) && root.children.isEmptyStartingWith(t+1) && prev != root {
-					root = prev
-					search = prevsearch
-					i = previ
-
-					// Delete previous param
-					if prevparam != "" {
-						c.Remove(prevparam)
-					}
-				}
-				continue
-			}
-
-			var label byte
-			if len(search) > 0 {
-				label = search[0]
-			}
-
-			xn := root.findEdge(t, label)
-			if xn == nil {
-				continue
-			}
-
-			xsearch := search
-			if xn.nodeType > static {
-				p := -1
-				if xn.nodeType < wildcard {
-					// To match or not match . in path
-					chars := tree.MainSeparators()
-
-					if isByteInString(xn.endinglabel, tree.OptionalSeparators()) {
-						chars += tree.OptionalSeparators()
-					}
-					p = strings.IndexAny(xsearch, chars)
-				}
-
-				if p < 0 {
-					p = len(xsearch)
-				}
-
-				if xn.nodeType == wildcard {
-					c.AddParam(xn.pname, tree.cfg.ParamTransformer.Transform(xsearch))
-				} else {
-					c.AddParam(xn.pname, tree.cfg.ParamTransformer.Transform(xsearch[:p]))
-				}
-
-				prevparam = xn.pname // Stores the previous param name
-
-				xsearch = xsearch[p:]
-			} else if strings.HasPrefix(xsearch, xn.pattern) {
-				xsearch = xsearch[len(xn.pattern):]
-			} else {
-				continue
-			}
-
-			if len(xsearch) == 0 && tree.isLeaf(xn, tags) {
-				return xn
-			}
-
-			prev = root
-			root = xn
-
-			prevsearch = search
-			search = xsearch
-
-			previ = i
-
-			continue LOOP // Search for next node (xn)
+		var label byte
+		if search != "" {
+			label = search[0]
 		}
 
+		// We check if there is a present route starting with label byte
+		if nn, ok := n.getStaticChild(label); ok && stringsHasPrefix(search, nn.pattern) {
+			lnn := len(nn.pattern)
+
+			// Case where the current path starts with and is longer than the found node's (nn) static path
+			// Check the tests, for example if we define:
+			// 		/hello/contact/named
+			// 		/hello/contact/:param
+			// and the user tries to fetch:
+			// 		/hello/contact/nameddd
+			// it should go the second registered pattern (the one that has :param)
+			if n.paramChild != nil &&
+				len(search) > lnn &&
+				!isByteInString(nn.endinglabel, tree.Separators()) {
+
+				end := strings.IndexAny(search[lnn:], tree.MainSeparators())
+				if end < 0 {
+					end = len(search[lnn:])
+				}
+				end += lnn
+
+				if search[lnn:end] != "" {
+					goto PARAM
+				}
+			}
+
+			n = nn
+			search = search[lnn:]
+			continue
+		}
+
+	PARAM:
+		// If there is a param child then we go for it.
+		if n.paramChild != nil {
+			prev = n
+			prevstep = param
+			n = n.paramChild
+			p := -1
+
+			chars := tree.MainSeparators()
+			if isByteInString(n.endinglabel, tree.OptionalSeparators()) {
+				chars += tree.OptionalSeparators()
+			}
+			p = stringsIndexAny(search, chars)
+			if p < 0 {
+				p = len(search)
+			}
+
+			pval := tree.cfg.ParamTransformer.Transform(search[:p])
+			c.AddParam(n.pname, pval)
+			prevparam = n.pname
+			prevsearch = search
+			search = search[p:]
+			continue
+		}
+
+	WILDCARD:
+		// If there is a wildcard child then we go for it.
+		if n.anyChild != nil {
+			prev = n
+			prevstep = wildcard
+			n = n.anyChild
+
+			pval := tree.cfg.ParamTransformer.Transform(search)
+			c.AddParam(n.pname, pval)
+
+			prevparam = n.pname
+			prevsearch = search
+			search = search[len(search):]
+			continue
+		}
+
+		// Finally if we were previously in a param node and there is no matched routes.
+		// We go back to the parent node and the previous search path.
+		// We then jump to the parent's wildcard node.
+		// If there was a previously registered param in the previous param node, we remove it.
+		if n != prev && prevstep == param && prev.anyChild != nil {
+			n = prev
+			search = prevsearch
+			if prevparam != "" {
+				c.Remove(prevparam)
+			}
+			goto WILDCARD
+		}
 		break
 	}
 
-	return nil
+	return out
 }
 
 func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) {
-	search := pattern
+	splitted := tree.split(pattern)
 
-	if len(search) == 0 {
-		tree.setValue(n, values, tags)
-		return
-	}
-	child := n.getEdge(search[0])
-	if child == nil {
-		child = &node{
-			label:   search[0],
-			pattern: search,
-		}
-		tree.setValue(child, values, tags)
-		tree.addChild(n, child, values, tags)
-		return
-	}
-
-	if child.nodeType > static {
-		pos := strings.Index(search, tree.MainSeparators())
-		if pos < 0 {
-			pos = len(search)
-		}
-
-		///// Check conflicting param names
-		var (
-			xpattern string
-			pname    string
-		)
-
-		xpattern = search[:pos]
-
-		// Find parameter name
-		if child.nodeType == wildcard {
-			pname = "*"
-			if len(xpattern) > 1 {
-				pname = xpattern[1:]
+	var cn *node
+	for _, cn = range splitted {
+	CONTINUE:
+		switch {
+		case cn.nodeType == param:
+			if n.paramChild == nil {
+				n.paramChild = cn
+			} else {
+				// Check conflicting parameter name
+				if n.paramChild.pname != cn.pname {
+					panicm("Conflicting parameter name '%s' with '%s' for pattern: '%s'",
+						n.paramChild.pname, cn.pname, n.paramChild.path())
+				}
 			}
+
+			cn.parent = n
+			n = n.paramChild
+
+			lcp := n.longestPrefix(pattern)
+			pattern = pattern[lcp:]
+		case cn.nodeType == wildcard:
+			if n.anyChild == nil {
+				n.anyChild = cn
+			} else {
+				// Check conflicting wildcard parameter name
+				if n.anyChild.pname != cn.pname {
+					panicm("Conflicting parameter name '%s' with '%s' for pattern: '%s'",
+						n.anyChild.pname, cn.pname, n.anyChild.path())
+				}
+			}
+
+			cn.parent = n
+			n = n.anyChild
+
+			lcp := n.longestPrefix(pattern)
+			pattern = pattern[lcp:]
+		default:
+			fn, ok := n.getStaticChild(cn.label)
+			if !ok {
+				// Label does not exist in node's (n) static children
+				// We then set the current node (cn) to n's static children.
+				n.setStaticChild(cn.label, cn)
+
+				cn.parent = n
+				lcp := cn.longestPrefix(pattern)
+				n = cn
+
+				pattern = pattern[lcp:]
+
+				continue
+			}
+
+			// Label already exist
+			lcp := fn.longestPrefix(pattern)
+			if lcp == len(fn.pattern) {
+				// If the longest common prefix (lcp) between the found node (fn) and the current pattern
+				// is equal to the found node's pattern.
+				// Then we can use the found node as the root node (n) and continue with the next splitted node. (with one exception, see below)
+				pattern = pattern[lcp:]
+
+				fn.parent = n
+				n = fn
+
+				// If the lcp is not equal to current splitted node's length then we stay with the current splitted node (cn)
+				// and adapt it's pattern and label
+				if lcp != len(cn.pattern) {
+					cn.pattern = cn.pattern[lcp:]
+					cn.label = cn.pattern[0]
+					goto CONTINUE
+				}
+				continue
+			} else if lcp == len(cn.pattern) {
+				// If the longest common prefix is equal to the current splitted node
+				// we split the existing found node until the common prefix
+				// and add the found node to this newly created node with it's pattern stripped.
+				splitpattern := fn.pattern[:lcp]
+				fn.pattern = fn.pattern[lcp:]
+
+				if fn.pattern != "" {
+					fn.label = fn.pattern[0]
+				}
+
+				nfn := &node{
+					parent:      n,
+					pattern:     splitpattern,
+					label:       splitpattern[0],
+					nodeType:    static,
+					endinglabel: splitpattern[len(splitpattern)-1],
+				}
+				nfn.setStaticChild(fn.label, fn)
+
+				n.setStaticChild(nfn.label, nfn)
+
+				n = nfn
+				pattern = pattern[lcp:]
+				continue
+			}
+
+			// Split
+			splitpattern := fn.pattern[:lcp]
+
+			//	We create a new static node that contains the longest common prefix
+			nfn := &node{
+				parent:   n,
+				pattern:  splitpattern,
+				label:    splitpattern[0],
+				nodeType: static,
+			}
+
+			n.removeLabel(fn.label)
+
+			// 	Then we add both the found node and splitted node with the common prefix stripped out
+			if fn.pattern[lcp:] != "" {
+				fn.pattern = fn.pattern[lcp:]
+				fn.label = fn.pattern[0]
+				nfn.setStaticChild(fn.label, fn)
+				fn.parent = nfn
+			}
+
+			if cn.pattern[lcp:] != "" {
+				cn.pattern = cn.pattern[lcp:]
+				cn.label = cn.pattern[0]
+				nfn.setStaticChild(cn.label, cn)
+				cn.parent = nfn
+			}
+
+			n.setStaticChild(nfn.label, nfn)
+
+			n = nfn
+			pattern = pattern[lcp:]
+
+			goto CONTINUE
+		}
+	}
+
+	tree.setValue(n, values, tags)
+}
+
+// split splits a pattern into multiple nodes types
+func (tree *tree) split(pattern string) (out []*node) {
+	base := pattern
+	for {
+		if pattern == "" {
+			break
+		}
+		c := pattern[0]
+
+		var endinglabel byte
+
+		end := strings.IndexAny(pattern, tree.Separators())
+		if end < 0 {
+			end = len(pattern)
+			endinglabel = pattern[end-1]
 		} else {
-			pname = xpattern[1:]
+			endinglabel = pattern[end]
 		}
 
-		if pname != child.pname {
-			panicm("Conflicting parameter name '%s' with '%s' for pattern: '%s'", child.pname, pname, n.pattern+pattern)
+		var child *node
+		switch c {
+		case tree.ParamChar():
+			var l byte
+			idx := strings.Index(base, pattern[:end])
+			if idx > 0 {
+				l = base[idx-1]
+			}
+			child = &node{
+				pattern:     pattern[:end],
+				nodeType:    param,
+				pname:       pattern[1:end],
+				endinglabel: endinglabel,
+				label:       l,
+			}
+			out = append(out, child)
+		case tree.WildcardChar():
+			pname := pattern[1:]
+			if pname == "" {
+				pname = "*"
+			}
+			child = &node{
+				pattern:  pattern,
+				nodeType: wildcard,
+				pname:    pname,
+			}
+
+			out = append(out, child)
+			pattern = ""
+			continue
+		default:
+			charIdx := strings.IndexAny(pattern, tree.AllChars())
+			if charIdx < 0 {
+				charIdx = len(pattern)
+			}
+
+			end = charIdx
+
+			cp := pattern[:end]
+			endinglabel = cp[len(cp)-1]
+			pattern = pattern[end:]
+
+			child = &node{
+				pattern:     cp,
+				nodeType:    static,
+				label:       c,
+				endinglabel: endinglabel,
+			}
+
+			out = append(out, child)
+			continue
 		}
-		///// End check
-
-		search = search[pos:]
-
-		tree.addRoute(child, search, values, tags)
-		return
+		pattern = pattern[end:]
 	}
 
-	commonPrefix := child.longestPrefix(search)
-	if commonPrefix == len(child.pattern) {
-
-		search = search[commonPrefix:]
-
-		tree.addRoute(child, search, values, tags)
-		return
-	}
-
-	subchild := &node{
-		nodeType: static,
-		pattern:  search[:commonPrefix],
-	}
-
-	n.replaceChild(search[0], subchild)
-	c2 := child
-	c2.label = child.pattern[commonPrefix]
-	tree.addChild(subchild, c2, values, tags)
-	child.pattern = child.pattern[commonPrefix:]
-
-	search = search[commonPrefix:]
-	if len(search) == 0 {
-		tree.setValue(subchild, values, tags)
-		return
-	}
-	tmp := &node{
-		label:    search[0],
-		nodeType: static,
-		pattern:  search,
-	}
-	tree.setValue(tmp, values, tags)
-	tree.addChild(subchild, tmp, values, tags)
 	return
 }
 
-func (tree *tree) addChild(n *node, child *node, values interface{}, tags Tags) {
-	search := child.pattern
-	pos := strings.IndexAny(search, tree.AllChars())
+func (tree *tree) printTree(n *node, decalage int) (out string) {
+	dec := strings.Repeat("\t", decalage)
+	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p]\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter)
 
-	ndtype := static
-	if pos >= 0 {
-		switch search[pos] {
-		case tree.ParamChar():
-			ndtype = param
-		case tree.WildcardChar():
-			ndtype = wildcard
-		}
+	if len(n.staticChildren) > 0 {
+		out += dec + "\tStatic Nodes\n"
 	}
-
-	switch {
-	case pos == 0: // Pattern starts with wildcard
-		l := len(search)
-		handler := tree.getValue(child, tags)
-		child.nodeType = ndtype
-		var (
-			endingpos int
-			pname     string
-		)
-		if ndtype == wildcard {
-			endingpos = -1
-		} else {
-			endingpos = strings.IndexAny(search, tree.Separators())
-		}
-		if endingpos < 0 {
-			endingpos = l
-		} else {
-			child.endinglabel = search[endingpos]
-		}
-		child.pattern = search[:endingpos]
-
-		// Find parameter name
-		if ndtype == wildcard {
-			pname = "*"
-			if len(child.pattern) > 1 {
-				pname = child.pattern[1:]
-			}
-		} else {
-			pname = child.pattern[1:]
-		}
-
-		child.pname = pname
-
-		if endingpos != l {
-			tree.setValue(child, nil, tags) // TODO: create clear function
-			search = search[endingpos:]
-			subchild := &node{
-				label:    search[0],
-				pattern:  search,
-				nodeType: static,
-			}
-			tree.setValue(subchild, handler, tags)
-			tree.addChild(child, subchild, values, tags)
-		}
-
-	case pos > 0: // Pattern has a wildcard parameter
-		handler := tree.getValue(child, tags)
-
-		child.nodeType = static
-		child.pattern = search[:pos]
-		tree.setValue(child, nil, tags) // TODO: create clear function
-
-		search = search[pos:]
-		subchild := &node{
-			label:    search[0],
-			nodeType: ndtype,
-			pattern:  search,
-		}
-		tree.setValue(subchild, handler, tags)
-		tree.addChild(child, subchild, values, tags)
-	default: // all static
-		child.nodeType = ndtype
+	for _, sc := range n.staticChildren {
+		out += tree.printTree(sc, decalage+1)
 	}
-
-	n.children[child.nodeType] = append(n.children[child.nodeType], child)
-	n.children[child.nodeType].Sort()
+	if n.paramChild != nil {
+		out += dec + "\tParam Node\n"
+		out += tree.printTree(n.paramChild, decalage+1)
+	}
+	if n.anyChild != nil {
+		out += dec + "\tAny Node\n"
+		out += tree.printTree(n.anyChild, decalage+1)
+	}
+	return
 }

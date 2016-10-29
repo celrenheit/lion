@@ -1,7 +1,6 @@
 package matcher
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 )
@@ -80,7 +79,12 @@ func reverseHost(pattern string) string {
 }
 
 func isByteInString(label byte, chars string) bool {
-	return bytes.IndexAny([]byte{label}, chars) != -1
+	for i := 0; i < len(chars); i++ {
+		if label == chars[i] {
+			return true
+		}
+	}
+	return false
 }
 
 func isInStringSlice(slice []string, expected string) bool {
