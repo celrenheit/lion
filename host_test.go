@@ -134,6 +134,8 @@ func TestHostMatcher(t *testing.T) {
 			t.Errorf("Handler not match for %s: expected %v but got %v", test.input, fmt.Sprintf("%v", test.expectedHandler), fmt.Sprintf("%v", h))
 		}
 	}
+
+	// fmt.Println(matcher.Print(hm.matcher))
 }
 
 func TestBasicGroupHost(t *testing.T) {

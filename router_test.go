@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -11,8 +12,6 @@ import (
 
 	"github.com/celrenheit/htest"
 	"github.com/fatih/color"
-
-	"context"
 )
 
 var (
@@ -32,6 +31,7 @@ func TestRouteMatching(t *testing.T) {
 	helloContactNamedSubParamHandler := fakeHandler()
 	helloContactByPersonHandler := fakeHandler()
 	helloContactByPersonStaticHandler := fakeHandler()
+	helloContactByPersonStaticSubHandler := fakeHandler()
 	helloContactByPersonToPersonHandler := fakeHandler()
 	helloContactByPersonAndPathHandler := fakeHandler()
 	extensionHandler := fakeHandler()
@@ -61,6 +61,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/named/:param", Handler: helloContactNamedSubParamHandler},
 		{Pattern: "/hello/contact/:dest", Handler: helloContactByPersonHandler},
 		{Pattern: "/hello/contact/:dest/static", Handler: helloContactByPersonStaticHandler},
+		{Pattern: "/hello/contact/:dest/static/sub", Handler: helloContactByPersonStaticSubHandler},
 		{Pattern: "/hello/contact/:dest/:from", Handler: helloContactByPersonToPersonHandler},
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
@@ -93,6 +94,9 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/named/deeper", ExpectedHandler: helloContactNamedDeeperHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: mss{"param": "batman"}},
 		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static/sub", ExpectedHandler: helloContactByPersonStaticSubHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/staticcc", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "nameddd", "from": "staticcc"}},
 		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "batman", "from": "robin"}},
@@ -160,6 +164,8 @@ func TestRouteMatching(t *testing.T) {
 		tester.Request(method, test.Input).Do().
 			ExpectStatus(expectedStatus)
 	}
+
+	// fmt.Println(matcher.Print(mux.hostrm.defaultRM.(*pathMatcher).matcher))
 }
 
 type anyHandler struct{}
