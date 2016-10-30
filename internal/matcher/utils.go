@@ -36,6 +36,24 @@ func stringsIndexAny(str, chars string) int {
 	return -1
 }
 
+func stringsIndexAnyNotEscaped(str, chars string) int {
+	ls := len(str)
+	lc := len(chars)
+
+	for i := 0; i < ls; i++ {
+		s := str[i]
+		for j := 0; j < lc; j++ {
+			if s == chars[j] {
+				if i > 0 && str[i-1] == '\\' {
+					continue
+				}
+				return i
+			}
+		}
+	}
+	return -1
+}
+
 func stringsIndex(str string, char byte) int {
 	ls := len(str)
 

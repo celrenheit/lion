@@ -189,6 +189,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) {
 	splitted := tree.split(pattern)
+	pattern = strings.Replace(pattern, `\`, "", -1)
 
 	var cn *node
 	for _, cn = range splitted {
@@ -386,10 +387,14 @@ func (tree *tree) split(pattern string) (out []*node) {
 			pattern = ""
 			continue
 		default:
-			charIdx := strings.IndexAny(pattern, tree.AllChars())
+			charIdx := stringsIndexAnyNotEscaped(pattern, tree.AllChars())
 			if charIdx < 0 {
 				charIdx = len(pattern)
 			}
+
+			count := strings.Count(pattern[:charIdx], `\`)
+			charIdx -= count
+			pattern = strings.Replace(pattern, `\`, "", count)
 
 			end = charIdx
 

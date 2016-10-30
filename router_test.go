@@ -20,6 +20,8 @@ var (
 
 func TestRouteMatching(t *testing.T) {
 	helloHandler := fakeHandler()
+	helloNameEscapedParamHandler := fakeHandler()
+	helloNameNestedEscapedParamHandler := fakeHandler()
 	helloNameHandler := fakeHandler()
 	helloNameTweetsHandler := fakeHandler()
 	helloNameGetTweetHandler := fakeHandler()
@@ -33,6 +35,7 @@ func TestRouteMatching(t *testing.T) {
 	helloContactByPersonStaticHandler := fakeHandler()
 	helloContactByPersonStaticSubHandler := fakeHandler()
 	helloContactByPersonToPersonHandler := fakeHandler()
+	helloContactByPersonToPersonEscapedHandler := fakeHandler()
 	helloContactByPersonAndPathHandler := fakeHandler()
 	extensionHandler := fakeHandler()
 	usernameHandler := fakeHandler()
@@ -51,6 +54,8 @@ func TestRouteMatching(t *testing.T) {
 	}{
 		{Pattern: "/hello", Handler: helloHandler},
 		{Pattern: "/hello/contact", Handler: helloContactHandler},
+		{Pattern: `/hello/\:name`, Handler: helloNameEscapedParamHandler},
+		{Pattern: "/hello/\\:name/\\:nested/\\:escaped", Handler: helloNameNestedEscapedParamHandler},
 		{Pattern: "/hello/:name", Handler: helloNameHandler},
 		{Pattern: "/hello/:name/tweets", Handler: helloNameTweetsHandler},
 		{Pattern: "/hello/:name/tweets/:id", Handler: helloNameGetTweetHandler},
@@ -63,6 +68,7 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/:dest/static", Handler: helloContactByPersonStaticHandler},
 		{Pattern: "/hello/contact/:dest/static/sub", Handler: helloContactByPersonStaticSubHandler},
 		{Pattern: "/hello/contact/:dest/:from", Handler: helloContactByPersonToPersonHandler},
+		{Pattern: "/hello/contact/\\:dest/\\:from", Handler: helloContactByPersonToPersonEscapedHandler},
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
 		{Pattern: "/@:username", Handler: usernameHandler},
@@ -83,6 +89,8 @@ func TestRouteMatching(t *testing.T) {
 		ExpectedStatus  int
 	}{
 		{Input: "/hello", ExpectedHandler: helloHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/:name", ExpectedHandler: helloNameEscapedParamHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/:name/:nested/:escaped", ExpectedHandler: helloNameNestedEscapedParamHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "batman"}},
 		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "dot.inthemiddle"}},
 		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "batman"}},
@@ -100,6 +108,7 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "batman", "from": "robin"}},
+		{Input: "/hello/contact/:dest/:from", ExpectedHandler: helloContactByPersonToPersonEscapedHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "batman", "path": "folder/subfolder/file"}},
 		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: mss{"file": "batman", "ext": "jpg"}},
 		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: mss{"username": "celrenheit"}},
