@@ -18,6 +18,7 @@ type node struct {
 	label       byte
 	endinglabel byte
 	GetSetter   GetSetter
+	priority    int
 
 	parent *node
 
@@ -47,7 +48,7 @@ func (n *node) children() nodes {
 type nodes []*node
 
 func (ns nodes) Len() int           { return len(ns) }
-func (ns nodes) Less(i, j int) bool { return ns[i].label < ns[j].label }
+func (ns nodes) Less(i, j int) bool { return ns[i].priority > ns[j].priority }
 func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Sort()              { sort.Sort(ns) }
 
@@ -77,6 +78,7 @@ func (n *node) setStaticChild(label byte, child *node) {
 	}
 
 	n.staticChildren = append(n.staticChildren, child)
+	n.calculatePriority()
 	n.staticChildren.Sort()
 }
 
@@ -94,10 +96,25 @@ func (n *node) getStaticChild(label byte) (child *node, ok bool) {
 	for _, c := range n.staticChildren {
 		if c.label == label {
 			return c, true
-		} else if c.label > label {
-			return nil, false
 		}
 	}
 
 	return nil, false
+}
+
+func (n *node) calculatePriority() int {
+	n.priority = 1
+	for _, sc := range n.staticChildren {
+		n.priority += sc.calculatePriority()
+	}
+
+	if n.paramChild != nil {
+		n.priority += n.paramChild.calculatePriority()
+	}
+
+	if n.anyChild != nil {
+		n.priority += n.anyChild.calculatePriority()
+	}
+
+	return n.priority
 }

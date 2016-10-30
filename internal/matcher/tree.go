@@ -410,7 +410,7 @@ func (tree *tree) split(pattern string) (out []*node) {
 
 func (tree *tree) printTree(n *node, decalage int) (out string) {
 	dec := strings.Repeat("\t", decalage)
-	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p]\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter)
+	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p] %d\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter, n.priority)
 
 	if len(n.staticChildren) > 0 {
 		out += dec + "\tStatic Nodes\n"
