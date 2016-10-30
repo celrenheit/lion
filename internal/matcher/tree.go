@@ -358,6 +358,11 @@ func (tree *tree) split(pattern string) (out []*node) {
 			if idx > 0 {
 				l = base[idx-1]
 			}
+
+			endinglabel = 0
+			if len(pattern) > end {
+				endinglabel = pattern[end]
+			}
 			child = &node{
 				pattern:     pattern[:end],
 				nodeType:    param,
