@@ -266,11 +266,6 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 				// we split the existing found node until the common prefix
 				// and add the found node to this newly created node with it's pattern stripped.
 				splitpattern := fn.pattern[:lcp]
-				fn.pattern = fn.pattern[lcp:]
-
-				if fn.pattern != "" {
-					fn.label = fn.pattern[0]
-				}
 
 				nfn := &node{
 					parent:      n,
@@ -279,7 +274,15 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 					nodeType:    static,
 					endinglabel: splitpattern[len(splitpattern)-1],
 				}
-				nfn.setStaticChild(fn.label, fn)
+
+				if _, ok := n.getStaticChild(fn.label); ok {
+					n.removeLabel(nfn.label)
+
+					fn.pattern = fn.pattern[lcp:]
+					fn.label = fn.pattern[0]
+
+					nfn.setStaticChild(fn.label, fn)
+				}
 
 				n.setStaticChild(nfn.label, nfn)
 
@@ -299,7 +302,7 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 				nodeType: static,
 			}
 
-			n.removeLabel(fn.label)
+			n.removeLabel(nfn.label)
 
 			// 	Then we add both the found node and splitted node with the common prefix stripped out
 			if fn.pattern[lcp:] != "" {
