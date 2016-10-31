@@ -113,3 +113,33 @@ func isInStringSlice(slice []string, expected string) bool {
 	}
 	return false
 }
+
+// nextParenthesis finds the starting and ending indices of the openning and closing parenthesis characters: '(' and ')'
+// inspired by https://github.com/gorilla/mux/blob/master/regexp.go#L214
+func nextParenthesis(pattern string) (start, end int) {
+	level := 0
+	for i := 0; i < len(pattern); i++ {
+		c := pattern[i]
+		switch c {
+		case '(':
+			level++
+			if level == 1 {
+				start = i
+			}
+		case ')':
+			level--
+			if level == 0 {
+				end = i
+				return
+			} else if level < 0 {
+				panicm("too many closed parenthesis in %s", pattern)
+			}
+		}
+	}
+
+	if level != 0 {
+		panicm("unbalanced parenthesis in %s", pattern)
+	}
+
+	return
+}

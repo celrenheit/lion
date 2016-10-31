@@ -46,6 +46,15 @@ func TestRouteMatching(t *testing.T) {
 	userMainWildcard := fakeHandler()
 	emptywildcardHandler := fakeHandler()
 	unicodeAlphaHandler := fakeHandler()
+	regexpRoot := fakeHandler()
+	regexpStatic := fakeHandler()
+	regexpStaticPrefix := fakeHandler()
+	regexpParam3 := fakeHandler()
+	regexpStatic2 := fakeHandler()
+	regexpOnlyNumbers := fakeHandler()
+	regexpABC := fakeHandler()
+	regexpABCN := fakeHandler()
+	regexpABCAny := fakeHandler()
 
 	routes := []struct {
 		Method  string
@@ -79,6 +88,15 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/users/*", Handler: userMainWildcard},
 		{Pattern: "/empty/*", Handler: emptywildcardHandler},
 		{Pattern: "/α", Handler: unicodeAlphaHandler},
+		{Pattern: "/regexp", Handler: regexpRoot},
+		{Pattern: "/regexp/static", Handler: regexpStatic},
+		{Pattern: "/regexp/bb", Handler: regexpStaticPrefix},
+		{Pattern: "/regexp/bbbb", Handler: regexpStatic2},
+		{Pattern: "/regexp/:param([a-z]{3})", Handler: regexpParam3},
+		{Pattern: "/regexp/n/:n([0-9]+)", Handler: regexpOnlyNumbers},
+		{Pattern: "/regexp/abc/:p(a|b/c)", Handler: regexpABC},
+		{Pattern: "/regexp/abc/:p(a|b/c)/:n([0-9]+)", Handler: regexpABCN},
+		{Pattern: "/regexp/abc/*any", Handler: regexpABCAny},
 	}
 
 	tests := []struct {
@@ -122,6 +140,20 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/α", ExpectedHandler: unicodeAlphaHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "أسد"}},
 		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "أسد"}},
+		{Input: "/regexp", ExpectedHandler: regexpRoot, ExpectedParams: emptyParams},
+		{Input: "/regexp/static", ExpectedHandler: regexpStatic, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaa", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "aaa"}},
+		{Input: "/regexp/bb", ExpectedHandler: regexpStaticPrefix, ExpectedParams: emptyParams},
+		{Input: "/regexp/bbb", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "bbb"}},
+		{Input: "/regexp/bbbb", ExpectedHandler: regexpStatic2, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaaa", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/n/123456", ExpectedHandler: regexpOnlyNumbers, ExpectedParams: mss{"n": "123456"}},
+		{Input: "/regexp/n/hello", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/abc/a", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "a"}},
+		{Input: "/regexp/abc/b/c", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "b/c"}},
+		{Input: "/regexp/abc/a/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "a", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "b/c", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456/test", ExpectedHandler: regexpABCAny, ExpectedParams: mss{"any": "b/c/123456/test"}},
 	}
 
 	mux := New()

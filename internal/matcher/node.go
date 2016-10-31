@@ -1,19 +1,22 @@
 package matcher
 
-import "sort"
+import (
+	"regexp"
+	"sort"
+)
 
 type nodeType uint8
 
 const (
 	static   nodeType = iota // /hello
-	regexp                   // TODO: /:id(regex)
-	param                    // /:id
+	param                    // /:id or /:id(regex)
 	wildcard                 // *
 )
 
 type node struct {
 	nodeType    nodeType
 	pname       string
+	re          *regexp.Regexp
 	pattern     string
 	label       byte
 	endinglabel byte
