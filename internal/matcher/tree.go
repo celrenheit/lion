@@ -93,34 +93,11 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 		// We check if there is a present route starting with label byte
 		if nn, ok := n.getStaticChild(label); ok && stringsHasPrefix(search, nn.pattern) {
-			lnn := len(nn.pattern)
-
-			// Case where the current path starts with and is longer than the found node's (nn) static path
-			// Check the tests, for example if we define:
-			// 		/hello/contact/named
-			// 		/hello/contact/:param
-			// and the user tries to fetch:
-			// 		/hello/contact/nameddd
-			// it should go the second registered pattern (the one that has :param)
-			if n.paramChild != nil &&
-				len(search) > lnn &&
-				!isByteInString(nn.endinglabel, tree.Separators()) {
-
-				end := strings.IndexAny(search[lnn:], tree.MainSeparators())
-				if end < 0 {
-					end = len(search[lnn:])
-				}
-				end += lnn
-
-				if (n.paramChild.re == nil && search[lnn:end] != "" && !nn.staticChildren.Contains(search[lnn:end], tree.MainSeparators())) ||
-					(n.paramChild.re != nil && len(n.paramChild.re.FindString(search[:end])) == len(search[:end])) {
-					goto PARAM
-				}
-			}
 
 			n = nn
+
 			tree.searchHistory = append(tree.searchHistory, search)
-			search = search[lnn:]
+			search = search[len(nn.pattern):]
 			continue
 		}
 
@@ -144,9 +121,6 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 				pval = tree.cfg.ParamTransformer.Transform(search[:p])
 			} else { // regex
 				pval = pn.re.FindString(tree.cfg.ParamTransformer.Transform(search))
-				if len(pval) != p && !strings.ContainsAny(pval, chars) {
-					goto WILDCARD
-				}
 				p = len(pval)
 			}
 
@@ -171,17 +145,42 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			continue
 		}
 
+		// Case where the current path starts with and is longer than the found node's (nn) static path
+		// Check the tests, for example if we define:
+		// 		/hello/contact/named
+		// 		/hello/contact/:param
+		// and the user tries to fetch:
+		// 		/hello/contact/nameddd
+		// it should go the second registered pattern (the one that has :param)
+		if search != "" && n.parent != nil && n.nodeType == static {
+			if n.parent.paramChild != nil && len(tree.searchHistory) > 0 {
+				// Going to parent
+				n = n.parent
+
+				// Rollback search
+				search = tree.searchHistory[len(tree.searchHistory)-1]
+				tree.searchHistory = tree.searchHistory[:len(tree.searchHistory)-1]
+				goto PARAM
+			}
+		}
+
 		// Finally if we were previously in a param node and there is no matched routes.
 		// We go back to the parent node and the previous search path.
 		// We then jump to the parent's wildcard node.
 		// If there was a previously registered param in the previous param node, we remove it.
-		if search != "" && n.parent != nil && len(tree.searchHistory) > 0 {
+		if search != "" && n.parent != nil {
 			// Walk back up the tree to find if there is a wildcard node
 			for n.anyChild == nil && n.parent != nil && len(tree.searchHistory) > 0 {
 				prevparam := n.pname
+
+				// Going to parent
 				n = n.parent
+
+				// Rollback search
 				search = tree.searchHistory[len(tree.searchHistory)-1]
 				tree.searchHistory = tree.searchHistory[:len(tree.searchHistory)-1]
+
+				// Remove parameters added along the way
 				if prevparam != "" {
 					c.Remove(prevparam)
 				}
@@ -290,6 +289,7 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 				if _, ok := n.getStaticChild(fn.label); ok {
 					n.removeLabel(nfn.label)
 
+					fn.parent = nfn
 					fn.pattern = fn.pattern[lcp:]
 					fn.label = fn.pattern[0]
 

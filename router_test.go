@@ -121,6 +121,7 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: mss{"param": "batman"}},
 		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "nameddd"}},
 		{Input: "/hello/contact/nameddd/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static/a/b/c/d", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "nameddd", "path": "static/a/b/c/d"}},
 		{Input: "/hello/contact/nameddd/static/sub", ExpectedHandler: helloContactByPersonStaticSubHandler, ExpectedParams: mss{"dest": "nameddd"}},
 		{Input: "/hello/contact/nameddd/staticcc", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "nameddd", "from": "staticcc"}},
 		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
