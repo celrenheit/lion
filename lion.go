@@ -43,10 +43,26 @@
 package lion
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"golang.org/x/net/context"
 )
+
+func init() {
+	if os.Getenv("LION_DISABLE_NOTICE") == "" {
+		fmt.Println(`
+Update notice:
+	Please switch to the 'v1' branch instead of 'master' for lion v1.
+	You can get it with:
+		go get -u gopkg.in/celrenheit/lion.v1
+	The import path for v1 might change in the future.
+	You can disable the above notice with this environnement variable:
+		LION_DISABLE_NOTICE=1
+	`)
+	}
+}
 
 // Handler responds to an HTTP request
 type Handler interface {
