@@ -11,6 +11,15 @@ and the new [documentation](https://godoc.org/gopkg.in/celrenheit/lion.v2) branc
 
 The most important one is that it now uses native [http.Handler](https://golang.org/pkg/net/http/#Handler).
 
+# Important
+
+If you are using lion v1, please change your import path to `gopkg.in/celrenheit/lion.v1`.
+
+You can get lion via:
+```shell
+go get -u gopkg.in/celrenheit/lion.v1
+```
+
 ## Features
 
 * **Context-Aware**: Lion uses the de-facto standard [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. It [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
@@ -56,7 +65,7 @@ The most important one is that it now uses native [http.Handler](https://golang.
 ## Install/Update
 
 ```shell
-$ go get -u github.com/celrenheit/lion
+$ go get -u gopkg.in/celrenheit/lion.v1
 ```
 
 
