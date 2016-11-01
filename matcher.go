@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/celrenheit/lion/matcher"
+	"gopkg.in/celrenheit/lion.v1/matcher"
 )
 
 // RegisterMatcher registers and matches routes to Handlers
