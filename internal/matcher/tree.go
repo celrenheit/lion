@@ -79,10 +79,6 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 	n := tree.root
 	search := path
 
-	// Store the previous elements
-	var (
-		prevstep nodeType = static
-	)
 	for {
 
 		if search == "" && tree.isLeaf(n, tags) {
@@ -116,8 +112,8 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 				}
 				end += lnn
 
-				if search[lnn:end] != "" &&
-					(n.paramChild.re == nil || len(n.paramChild.re.FindString(search[:end])) == len(search[:end])) {
+				if (n.paramChild.re == nil && search[lnn:end] != "" && !nn.staticChildren.Contains(search[lnn:end], tree.MainSeparators())) ||
+					(n.paramChild.re != nil && len(n.paramChild.re.FindString(search[:end])) == len(search[:end])) {
 					goto PARAM
 				}
 			}
@@ -144,20 +140,19 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			}
 
 			var pval string
-			if pn.re == nil { // param
-				pval = search[:p]
+			if pn.re == nil { // normal parameter
+				pval = tree.cfg.ParamTransformer.Transform(search[:p])
 			} else { // regex
-				pval = pn.re.FindString(search)
+				pval = pn.re.FindString(tree.cfg.ParamTransformer.Transform(search))
 				if len(pval) != p && !strings.ContainsAny(pval, chars) {
 					goto WILDCARD
 				}
 				p = len(pval)
 			}
 
-			c.AddParam(pn.pname, tree.cfg.ParamTransformer.Transform(pval))
-
+			c.AddParam(pn.pname, pval)
 			tree.searchHistory = append(tree.searchHistory, search)
-			prevstep = param
+
 			n = n.paramChild
 			search = search[p:]
 			continue
@@ -171,7 +166,6 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			pval := tree.cfg.ParamTransformer.Transform(search)
 			c.AddParam(n.pname, pval)
 
-			prevstep = wildcard
 			tree.searchHistory = append(tree.searchHistory, search)
 			search = search[len(search):]
 			continue
@@ -181,9 +175,9 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 		// We go back to the parent node and the previous search path.
 		// We then jump to the parent's wildcard node.
 		// If there was a previously registered param in the previous param node, we remove it.
-		if n.parent != nil && prevstep == param && len(tree.searchHistory) > 0 {
+		if search != "" && n.parent != nil && len(tree.searchHistory) > 0 {
 			// Walk back up the tree to find if there is a wildcard node
-			for n.anyChild == nil && n.parent != nil {
+			for n.anyChild == nil && n.parent != nil && len(tree.searchHistory) > 0 {
 				prevparam := n.pname
 				n = n.parent
 				search = tree.searchHistory[len(tree.searchHistory)-1]
@@ -452,7 +446,12 @@ func (tree *tree) split(pattern string) (out []*node) {
 
 func (tree *tree) printTree(n *node, decalage int) (out string) {
 	dec := strings.Repeat("\t", decalage)
-	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p] %d\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter, n.priority)
+
+	var regexNode string
+	if n.re != nil {
+		regexNode = "RE"
+	}
+	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p] %d %s\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter, n.priority, regexNode)
 
 	if len(n.staticChildren) > 0 {
 		out += dec + "\tStatic Nodes\n"

@@ -3,6 +3,7 @@ package matcher
 import (
 	"regexp"
 	"sort"
+	"strings"
 )
 
 type nodeType uint8
@@ -54,6 +55,14 @@ func (ns nodes) Len() int           { return len(ns) }
 func (ns nodes) Less(i, j int) bool { return ns[i].priority > ns[j].priority }
 func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Sort()              { sort.Sort(ns) }
+func (ns nodes) Contains(pattern, sep string) bool {
+	for _, n := range ns {
+		if strings.TrimSuffix(n.pattern, sep) == pattern {
+			return true
+		}
+	}
+	return false
+}
 
 func (n *node) path() string {
 	if n.parent == nil {
