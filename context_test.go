@@ -160,9 +160,7 @@ func TestContextRender(t *testing.T) {
 	for dtype, subtests := range tests {
 		t.Run(dtype, func(t *testing.T) {
 			for _, test := range subtests {
-				w := httptest.NewRecorder()
-				r := httptest.NewRequest("GET", "/hello", nil)
-				c := newContextWithResReq(context.Background(), w, r)
+				c, w := newTestCtx()
 
 				switch dtype {
 				case "json":
@@ -198,9 +196,7 @@ func TestContextFile(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/hello", nil)
-	c := newContextWithResReq(context.Background(), w, r)
+	c, w := newTestCtx()
 
 	c.File(f.Name())
 
@@ -215,9 +211,7 @@ func TestContextFile(t *testing.T) {
 		t.Errorf("Expected '%s' but got '%s'", want, got)
 	}
 
-	// Reset response writer
-	w = httptest.NewRecorder()
-	c.ResponseWriter = w
+	c, w = newTestCtx()
 
 	f2, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -234,4 +228,36 @@ func TestContextFile(t *testing.T) {
 	if got != want {
 		t.Errorf("Expected '%s' but got '%s'", want, got)
 	}
+}
+
+func TestWithStatus(t *testing.T) {
+	c, w := newTestCtx()
+
+	c.WithStatus(200)
+	if w.Code != 200 {
+		t.Errorf("Context: status code should be equal")
+	}
+
+	c.WithStatus(401)
+	if w.Code != 200 {
+		t.Errorf("Context: status code should not have changed")
+	}
+}
+
+func TestWithHeader(t *testing.T) {
+	c, w := newTestCtx()
+
+	c.WithHeader("test", "val")
+
+	if w.Header().Get("test") != "val" {
+		t.Errorf("Context: header should be equal")
+	}
+}
+
+func newTestCtx() (c *ctx, w *httptest.ResponseRecorder) {
+	w = httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/hello", nil)
+	c = newContextWithResReq(context.Background(), w, r)
+
+	return
 }

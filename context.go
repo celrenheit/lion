@@ -24,7 +24,9 @@ type Context interface {
 	Clone() Context
 
 	Request() *http.Request
+
 	WithStatus(code int) Context
+	WithHeader(key, value string) Context
 
 	// Rendering
 	JSON(data interface{}) error
@@ -133,6 +135,12 @@ func (c *ctx) WithStatus(code int) Context {
 
 func (c *ctx) isStatusWritten() bool {
 	return c.code != 0
+}
+
+// WithHeader is a convenient alias for http.ResponseWriter.Header().Set()
+func (c *ctx) WithHeader(key, value string) Context {
+	c.Header().Set(key, value)
+	return c
 }
 
 ///////////////// RENDERING /////////////////
