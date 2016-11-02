@@ -11,18 +11,25 @@ var ctxKey = &struct{}{}
 // Check Context implements net.Context
 var _ context.Context = (*ctx)(nil)
 var _ Context = (*ctx)(nil)
+var _ http.ResponseWriter = (*ctx)(nil)
 
 type Context interface {
 	context.Context
+	http.ResponseWriter
 	Param(key string) string
 	ParamOk(key string) (string, bool)
 	Clone() Context
+
+	Request() *http.Request
 }
 
 // Context implements context.Context and stores values of url parameters
 type ctx struct {
 	context.Context
+	http.ResponseWriter
+
 	parent context.Context
+	req    *http.Request
 
 	keys   []string
 	values []string
@@ -35,8 +42,14 @@ func newContext() *ctx {
 
 // newContextWithParent creates a new context with a parent context specified
 func newContextWithParent(c context.Context) *ctx {
+	return newContextWithResReq(c, nil, nil)
+}
+
+func newContextWithResReq(c context.Context, w http.ResponseWriter, r *http.Request) *ctx {
 	return &ctx{
-		parent: c,
+		parent:         c,
+		ResponseWriter: w,
+		req:            r,
 	}
 }
 
@@ -87,6 +100,10 @@ func (c *ctx) Clone() Context {
 	copy(nc.values, c.values)
 
 	return nc
+}
+
+func (c *ctx) Request() *http.Request {
+	return c.req
 }
 
 func (c *ctx) Reset() {

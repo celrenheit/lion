@@ -294,6 +294,8 @@ func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) {
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := r.pool.Get().(*ctx)
 	ctx.parent = req.Context()
+	ctx.ResponseWriter = w
+	ctx.req = req
 
 	if h := r.router.hostrm.Match(ctx, req); h != nil {
 		// We set the context only if there is a match
