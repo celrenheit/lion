@@ -40,68 +40,68 @@ func newContextWithParent(c context.Context) *ctx {
 }
 
 // Value returns the value for the passed key. If it is not found in the url params it returns parent's context Value
-func (p *ctx) Value(key interface{}) interface{} {
+func (c *ctx) Value(key interface{}) interface{} {
 	if key == ctxKey {
-		return p
+		return c
 	}
 
 	if k, ok := key.(string); ok {
-		if val, exist := p.ParamOk(k); exist {
+		if val, exist := c.ParamOk(k); exist {
 			return val
 		}
 	}
 
-	return p.parent.Value(key)
+	return c.parent.Value(key)
 }
 
-func (p *ctx) AddParam(key, val string) {
-	p.keys = append(p.keys, key)
-	p.values = append(p.values, val)
+func (c *ctx) AddParam(key, val string) {
+	c.keys = append(c.keys, key)
+	c.values = append(c.values, val)
 }
 
 // Param returns the value of a param.
 // If it does not exist it returns an empty string
-func (p *ctx) Param(key string) string {
-	val, _ := p.ParamOk(key)
+func (c *ctx) Param(key string) string {
+	val, _ := c.ParamOk(key)
 	return val
 }
 
 // ParamOk returns the value of a param and a boolean that indicates if the param exists.
-func (p *ctx) ParamOk(key string) (string, bool) {
-	for i, name := range p.keys {
+func (c *ctx) ParamOk(key string) (string, bool) {
+	for i, name := range c.keys {
 		if name == key {
-			return p.values[i], true
+			return c.values[i], true
 		}
 	}
 
-	if c, ok := p.parent.(*ctx); ok {
+	if c, ok := c.parent.(*ctx); ok {
 		return c.ParamOk(key)
-	} else if val, ok := p.parent.Value(key).(string); ok {
+	} else if val, ok := c.parent.Value(key).(string); ok {
 		return val, ok
 	}
 
 	return "", false
 }
 
-func (p *ctx) Reset() {
-	p.keys = p.keys[:0]
-	p.values = p.values[:0]
-	p.parent = nil
+func (c *ctx) Reset() {
+	c.keys = c.keys[:0]
+	c.values = c.values[:0]
+	c.parent = nil
 }
 
-func (p *ctx) Remove(key string) {
-	i := p.indexOf(key)
+func (c *ctx) Remove(key string) {
+	i := c.indexOf(key)
 	if i < 0 {
 		panicl("Cannot remove unknown key '%s' from context", key)
 	}
 
-	p.keys = append(p.keys[:i], p.keys[i+1:]...)
-	p.values = append(p.values[:i], p.values[i+1:]...)
+	c.keys = append(c.keys[:i], c.keys[i+1:]...)
+	c.values = append(c.values[:i], c.values[i+1:]...)
 }
 
-func (p *ctx) indexOf(key string) int {
-	for i := len(p.keys) - 1; i >= 0; i-- {
-		if p.keys[i] == key {
+func (c *ctx) indexOf(key string) int {
+	for i := len(c.keys) - 1; i >= 0; i-- {
+		if c.keys[i] == key {
 			return i
 		}
 	}
