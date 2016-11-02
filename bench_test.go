@@ -97,7 +97,7 @@ func loadLion(routes []route) http.Handler {
 			panic("Unknown HTTP method: " + route.method)
 		}
 	}
-	// mux.Matcher.DisplayTree(0)
+	// fmt.Println(matcher.Print(mux.hostrm.defaultRM.(*pathMatcher).matcher))
 	return mux
 }
 func httpHandlerFunc(w http.ResponseWriter, r *http.Request) {}

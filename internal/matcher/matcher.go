@@ -71,18 +71,29 @@ func (m *matcher) postvalidation(pattern string) {
 }
 
 func (m *matcher) findDuplicateParamNames(n *node, pattern string, pnames []string) {
-	for _, children := range n.children {
-		for _, child := range children {
-			if child.nodeType > static && child.pname == "" {
-				panicm(`cannot use an unnamed parameter for  %s`, pattern)
-			}
+	for _, sc := range n.staticChildren {
+		m.findDuplicateParamNames(sc, pattern, pnames)
+	}
 
-			if len(child.pname) > 0 && isInStringSlice(pnames, child.pname) {
-				panicm("lion: Duplicate parameter %s for %s", child.pname, pattern)
-			}
+	if n.paramChild != nil {
+		nn := n.paramChild
+		m.validateParamNode(nn, pattern, pnames)
+		m.findDuplicateParamNames(nn, pattern, append(pnames, nn.pname))
+	}
 
-			m.findDuplicateParamNames(child, pattern, append(pnames, child.pname))
-		}
+	if n.anyChild != nil {
+		nn := n.anyChild
+		m.validateParamNode(nn, pattern, pnames)
+		m.findDuplicateParamNames(nn, pattern, append(pnames, nn.pname))
+	}
+}
+
+func (m *matcher) validateParamNode(nn *node, pattern string, pnames []string) {
+	if nn.pname == "" {
+		panicm(`cannot use an unnamed parameter for  %s`, pattern)
+	}
+	if isInStringSlice(pnames, nn.pname) {
+		panicm("duplicate parameter %s for %s", nn.pname, pattern)
 	}
 }
 
@@ -92,4 +103,9 @@ type noopParamTransformer struct{}
 
 func (_ noopParamTransformer) Transform(input string) string {
 	return input
+}
+
+func Print(ma Matcher) string {
+	m := ma.(*matcher)
+	return m.tree.printTree(m.tree.root, 0)
 }

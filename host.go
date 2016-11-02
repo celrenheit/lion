@@ -3,7 +3,6 @@ package lion
 import (
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/celrenheit/lion/internal/matcher"
 )
@@ -108,48 +107,52 @@ func (hs *hostStore) Get(tags matcher.Tags) interface{} {
 }
 
 type hostParamTransformer struct {
-	splittedStringPool sync.Pool
+	slice     []string
+	portSlice []string
 }
 
 func newHostParamTransformer() *hostParamTransformer {
-	return &hostParamTransformer{
-		splittedStringPool: sync.Pool{
-			New: func() interface{} {
-				return &splittedStringItem{}
-			},
-		},
-	}
+	return &hostParamTransformer{}
 }
 
 func (hpt *hostParamTransformer) Transform(input string) string {
-	reversedItem := hpt.split(input, ".")
-	reversed := reversedItem.slice
+	// Split host based on '.' character
+	reversed := hpt.split(input, ".")
+
+	// Split and reverse each host parts if it has a port character ':'
+	portPart := reversed[len(reversed)-1]
+	if strings.Contains(portPart, ":") {
+		splitted := strings.Split(portPart, ":")
+		splitted[0], splitted[1] = splitted[1], splitted[0]
+		reversed[len(reversed)-1] = strings.Join(splitted, ":")
+	}
+
 	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
 		reversed[i], reversed[j] = reversed[j], reversed[i]
 	}
+
 	output := strings.Join(reversed, ".")
-	hpt.splittedStringPool.Put(reversedItem)
 	return output
 }
 
 // Taken from Go's standard library
 // https://github.com/golang/go/blob/master/src/strings/strings.go#L237-L261
-func (hpt *hostParamTransformer) split(s, sep string) *splittedStringItem {
-	si := hpt.splittedStringPool.Get().(*splittedStringItem)
+func (hpt *hostParamTransformer) split(s, sep string) []string {
+	hpt.slice = hpt.slice[0:]
 	n := strings.Count(s, sep) + 1
 	c := sep[0]
 	start := 0
 
 	var a []string
-	if cap(si.slice) == n {
-		a = si.slice
+	if cap(hpt.slice) == n {
+		a = hpt.slice
 	} else {
 		a = make([]string, n)
 	}
 
 	na := 0
 	for i := 0; i+len(sep) <= len(s) && na+1 < n; i++ {
-		if s[i] == c && (len(sep) == 1 || s[i:i+len(sep)] == sep) {
+		if s[i] == c && (len(sep) == 1 || s[i:i+len(sep)] == sep) && (i == 0 || s[i-1] != '\\') {
 			a[na] = s[start:i]
 			na++
 			start = i + len(sep)
@@ -157,12 +160,8 @@ func (hpt *hostParamTransformer) split(s, sep string) *splittedStringItem {
 		}
 	}
 	a[na] = s[start:]
-	si.slice = a[0 : na+1]
-	return si
-}
-
-type splittedStringItem struct {
-	slice []string
+	hpt.slice = a[0 : na+1]
+	return hpt.slice
 }
 
 var hostReverser = newHostParamTransformer()

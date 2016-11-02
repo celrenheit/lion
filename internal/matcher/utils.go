@@ -1,7 +1,6 @@
 package matcher
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 )
@@ -30,6 +29,24 @@ func stringsIndexAny(str, chars string) int {
 		s := str[i]
 		for j := 0; j < lc; j++ {
 			if s == chars[j] {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func stringsIndexAnyNotEscaped(str, chars string) int {
+	ls := len(str)
+	lc := len(chars)
+
+	for i := 0; i < ls; i++ {
+		s := str[i]
+		for j := 0; j < lc; j++ {
+			if s == chars[j] {
+				if i > 0 && str[i-1] == '\\' {
+					continue
+				}
 				return i
 			}
 		}
@@ -80,7 +97,12 @@ func reverseHost(pattern string) string {
 }
 
 func isByteInString(label byte, chars string) bool {
-	return bytes.IndexAny([]byte{label}, chars) != -1
+	for i := 0; i < len(chars); i++ {
+		if label == chars[i] {
+			return true
+		}
+	}
+	return false
 }
 
 func isInStringSlice(slice []string, expected string) bool {
@@ -90,4 +112,34 @@ func isInStringSlice(slice []string, expected string) bool {
 		}
 	}
 	return false
+}
+
+// nextParenthesis finds the starting and ending indices of the openning and closing parenthesis characters: '(' and ')'
+// inspired by https://github.com/gorilla/mux/blob/master/regexp.go#L214
+func nextParenthesis(pattern string) (start, end int) {
+	level := 0
+	for i := 0; i < len(pattern); i++ {
+		c := pattern[i]
+		switch c {
+		case '(':
+			level++
+			if level == 1 {
+				start = i
+			}
+		case ')':
+			level--
+			if level == 0 {
+				end = i
+				return
+			} else if level < 0 {
+				panicm("too many closed parenthesis in %s", pattern)
+			}
+		}
+	}
+
+	if level != 0 {
+		panicm("unbalanced parenthesis in %s", pattern)
+	}
+
+	return
 }

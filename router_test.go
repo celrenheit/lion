@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -11,8 +12,6 @@ import (
 
 	"github.com/celrenheit/htest"
 	"github.com/fatih/color"
-
-	"context"
 )
 
 var (
@@ -21,6 +20,8 @@ var (
 
 func TestRouteMatching(t *testing.T) {
 	helloHandler := fakeHandler()
+	helloNameEscapedParamHandler := fakeHandler()
+	helloNameNestedEscapedParamHandler := fakeHandler()
 	helloNameHandler := fakeHandler()
 	helloNameTweetsHandler := fakeHandler()
 	helloNameGetTweetHandler := fakeHandler()
@@ -32,7 +33,9 @@ func TestRouteMatching(t *testing.T) {
 	helloContactNamedSubParamHandler := fakeHandler()
 	helloContactByPersonHandler := fakeHandler()
 	helloContactByPersonStaticHandler := fakeHandler()
+	helloContactByPersonStaticSubHandler := fakeHandler()
 	helloContactByPersonToPersonHandler := fakeHandler()
+	helloContactByPersonToPersonEscapedHandler := fakeHandler()
 	helloContactByPersonAndPathHandler := fakeHandler()
 	extensionHandler := fakeHandler()
 	usernameHandler := fakeHandler()
@@ -43,6 +46,15 @@ func TestRouteMatching(t *testing.T) {
 	userMainWildcard := fakeHandler()
 	emptywildcardHandler := fakeHandler()
 	unicodeAlphaHandler := fakeHandler()
+	regexpRoot := fakeHandler()
+	regexpStatic := fakeHandler()
+	regexpStaticPrefix := fakeHandler()
+	regexpParam3 := fakeHandler()
+	regexpStatic2 := fakeHandler()
+	regexpOnlyNumbers := fakeHandler()
+	regexpABC := fakeHandler()
+	regexpABCN := fakeHandler()
+	regexpABCAny := fakeHandler()
 
 	routes := []struct {
 		Method  string
@@ -51,6 +63,8 @@ func TestRouteMatching(t *testing.T) {
 	}{
 		{Pattern: "/hello", Handler: helloHandler},
 		{Pattern: "/hello/contact", Handler: helloContactHandler},
+		{Pattern: `/hello/\:name`, Handler: helloNameEscapedParamHandler},
+		{Pattern: "/hello/\\:name/\\:nested/\\:escaped", Handler: helloNameNestedEscapedParamHandler},
 		{Pattern: "/hello/:name", Handler: helloNameHandler},
 		{Pattern: "/hello/:name/tweets", Handler: helloNameTweetsHandler},
 		{Pattern: "/hello/:name/tweets/:id", Handler: helloNameGetTweetHandler},
@@ -61,7 +75,9 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/named/:param", Handler: helloContactNamedSubParamHandler},
 		{Pattern: "/hello/contact/:dest", Handler: helloContactByPersonHandler},
 		{Pattern: "/hello/contact/:dest/static", Handler: helloContactByPersonStaticHandler},
+		{Pattern: "/hello/contact/:dest/static/sub", Handler: helloContactByPersonStaticSubHandler},
 		{Pattern: "/hello/contact/:dest/:from", Handler: helloContactByPersonToPersonHandler},
+		{Pattern: "/hello/contact/\\:dest/\\:from", Handler: helloContactByPersonToPersonEscapedHandler},
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
 		{Pattern: "/@:username", Handler: usernameHandler},
@@ -72,6 +88,15 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/users/*", Handler: userMainWildcard},
 		{Pattern: "/empty/*", Handler: emptywildcardHandler},
 		{Pattern: "/α", Handler: unicodeAlphaHandler},
+		{Pattern: "/regexp", Handler: regexpRoot},
+		{Pattern: "/regexp/static", Handler: regexpStatic},
+		{Pattern: "/regexp/bb", Handler: regexpStaticPrefix},
+		{Pattern: "/regexp/bbbb", Handler: regexpStatic2},
+		{Pattern: "/regexp/:param([a-z]{3})", Handler: regexpParam3},
+		{Pattern: "/regexp/n/:n([0-9]+)", Handler: regexpOnlyNumbers},
+		{Pattern: "/regexp/abc/:p(a|b/c)", Handler: regexpABC},
+		{Pattern: "/regexp/abc/:p(a|b/c)/:n([0-9]+)", Handler: regexpABCN},
+		{Pattern: "/regexp/abc/*any", Handler: regexpABCAny},
 	}
 
 	tests := []struct {
@@ -82,6 +107,8 @@ func TestRouteMatching(t *testing.T) {
 		ExpectedStatus  int
 	}{
 		{Input: "/hello", ExpectedHandler: helloHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/:name", ExpectedHandler: helloNameEscapedParamHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/:name/:nested/:escaped", ExpectedHandler: helloNameNestedEscapedParamHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "batman"}},
 		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "dot.inthemiddle"}},
 		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "batman"}},
@@ -93,9 +120,14 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/hello/contact/named/deeper", ExpectedHandler: helloContactNamedDeeperHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: mss{"param": "batman"}},
 		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static/a/b/c/d", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "nameddd", "path": "static/a/b/c/d"}},
+		{Input: "/hello/contact/nameddd/static/sub", ExpectedHandler: helloContactByPersonStaticSubHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/staticcc", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "nameddd", "from": "staticcc"}},
 		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "batman"}},
 		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "batman", "from": "robin"}},
+		{Input: "/hello/contact/:dest/:from", ExpectedHandler: helloContactByPersonToPersonEscapedHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "batman", "path": "folder/subfolder/file"}},
 		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: mss{"file": "batman", "ext": "jpg"}},
 		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: mss{"username": "celrenheit"}},
@@ -109,6 +141,20 @@ func TestRouteMatching(t *testing.T) {
 		{Input: "/α", ExpectedHandler: unicodeAlphaHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "أسد"}},
 		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "أسد"}},
+		{Input: "/regexp", ExpectedHandler: regexpRoot, ExpectedParams: emptyParams},
+		{Input: "/regexp/static", ExpectedHandler: regexpStatic, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaa", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "aaa"}},
+		{Input: "/regexp/bb", ExpectedHandler: regexpStaticPrefix, ExpectedParams: emptyParams},
+		{Input: "/regexp/bbb", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "bbb"}},
+		{Input: "/regexp/bbbb", ExpectedHandler: regexpStatic2, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaaa", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/n/123456", ExpectedHandler: regexpOnlyNumbers, ExpectedParams: mss{"n": "123456"}},
+		{Input: "/regexp/n/hello", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/abc/a", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "a"}},
+		{Input: "/regexp/abc/b/c", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "b/c"}},
+		{Input: "/regexp/abc/a/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "a", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "b/c", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456/test", ExpectedHandler: regexpABCAny, ExpectedParams: mss{"any": "b/c/123456/test"}},
 	}
 
 	mux := New()
@@ -160,6 +206,8 @@ func TestRouteMatching(t *testing.T) {
 		tester.Request(method, test.Input).Do().
 			ExpectStatus(expectedStatus)
 	}
+
+	// fmt.Println(matcher.Print(mux.hostrm.defaultRM.(*pathMatcher).matcher))
 }
 
 type anyHandler struct{}
