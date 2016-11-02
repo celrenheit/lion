@@ -107,6 +107,10 @@ func (c *ctx) Clone() Context {
 	nc.values = make([]string, len(c.values), cap(c.values))
 	copy(nc.values, c.values)
 
+	// shallow copy of request
+	nr := &c.req
+	nc.req = *nr
+
 	return nc
 }
 
@@ -140,6 +144,8 @@ func (c *ctx) Reset() {
 	c.keys = c.keys[:0]
 	c.values = c.values[:0]
 	c.parent = nil
+	c.req = nil
+	c.ResponseWriter = nil
 }
 
 func (c *ctx) Remove(key string) {
