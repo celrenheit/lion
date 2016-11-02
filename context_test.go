@@ -2,8 +2,10 @@ package lion
 
 import (
 	"encoding/xml"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
@@ -181,5 +183,55 @@ func TestContextRender(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestContextFile(t *testing.T) {
+	want := "Lion"
+
+	f, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Error(err)
+	}
+	f.WriteString(want)
+	f.Close()
+
+	defer os.Remove(f.Name())
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/hello", nil)
+	c := newContextWithResReq(context.Background(), w, r)
+
+	c.File(f.Name())
+
+	got := w.Body.String()
+	if got != want {
+		t.Errorf("Expected '%s' but got '%s'", want, got)
+	}
+
+	want = "text/plain; charset=utf-8"
+	got = w.Header().Get("Content-Type")
+	if got != want {
+		t.Errorf("Expected '%s' but got '%s'", want, got)
+	}
+
+	// Reset response writer
+	w = httptest.NewRecorder()
+	c.ResponseWriter = w
+
+	f2, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Error(err)
+	}
+	f2.WriteString(`<!DOCTYPE html><html><body><div class="lion">arghhh</div></body></html>`)
+	f2.Close()
+
+	defer os.Remove(f2.Name())
+	c.File(f2.Name())
+
+	want = "text/html; charset=utf-8"
+	got = w.Header().Get("Content-Type")
+	if got != want {
+		t.Errorf("Expected '%s' but got '%s'", want, got)
 	}
 }

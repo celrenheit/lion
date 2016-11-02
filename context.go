@@ -129,6 +129,11 @@ func (c *ctx) XML(data interface{}) error {
 	return xml.NewEncoder(c).Encode(data)
 }
 
+func (c *ctx) File(path string) error {
+	http.ServeFile(c, c.Request(), path)
+	return nil
+}
+
 ///////////////// RENDERING /////////////////
 
 func (c *ctx) Reset() {
