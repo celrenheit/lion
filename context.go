@@ -24,6 +24,7 @@ type Context interface {
 	Clone() Context
 
 	Request() *http.Request
+	WithStatus(code int) Context
 
 	// Rendering
 	JSON(data interface{}) error
@@ -41,6 +42,8 @@ type ctx struct {
 
 	keys   []string
 	values []string
+
+	code int
 }
 
 // newContext creates a new context instance
@@ -116,6 +119,20 @@ func (c *ctx) Clone() Context {
 
 func (c *ctx) Request() *http.Request {
 	return c.req
+}
+
+// WithStatus sets the status code for the current request.
+// If the status has already been written it will not change the current status code
+func (c *ctx) WithStatus(code int) Context {
+	if !c.isStatusWritten() {
+		c.WriteHeader(code)
+	}
+
+	return c
+}
+
+func (c *ctx) isStatusWritten() bool {
+	return c.code != 0
 }
 
 ///////////////// RENDERING /////////////////
