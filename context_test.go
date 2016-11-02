@@ -2,6 +2,7 @@ package lion
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 
 	"context"
@@ -101,5 +102,15 @@ func TestGetParamInNestedContext(t *testing.T) {
 
 	if v != "mydb" {
 		t.Errorf("Value should be equal to 'mydb' but got '%s'", v)
+	}
+}
+
+func TestContextClone(t *testing.T) {
+	old := newContextWithParent(context.Background())
+	old.AddParam("test", "val")
+	new := old.Clone().(*ctx)
+
+	if !reflect.DeepEqual(old, new) {
+		t.Errorf("Should be equal")
 	}
 }

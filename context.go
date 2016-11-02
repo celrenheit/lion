@@ -16,6 +16,7 @@ type Context interface {
 	context.Context
 	Param(key string) string
 	ParamOk(key string) (string, bool)
+	Clone() Context
 }
 
 // Context implements context.Context and stores values of url parameters
@@ -74,13 +75,18 @@ func (c *ctx) ParamOk(key string) (string, bool) {
 		}
 	}
 
-	if c, ok := c.parent.(*ctx); ok {
-		return c.ParamOk(key)
-	} else if val, ok := c.parent.Value(key).(string); ok {
-		return val, ok
-	}
-
 	return "", false
+}
+
+func (c *ctx) Clone() Context {
+	nc := newContext()
+	nc.parent = c.parent
+	nc.keys = make([]string, len(c.keys), cap(c.keys))
+	copy(nc.keys, c.keys)
+	nc.values = make([]string, len(c.values), cap(c.values))
+	copy(nc.values, c.values)
+
+	return nc
 }
 
 func (c *ctx) Reset() {
