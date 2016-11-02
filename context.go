@@ -2,6 +2,9 @@ package lion
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
 	"net/http"
 )
 
@@ -21,6 +24,11 @@ type Context interface {
 	Clone() Context
 
 	Request() *http.Request
+
+	// Rendering
+	JSON(data interface{}) error
+	XML(data interface{}) error
+	String(format string, a ...interface{}) error
 }
 
 // Context implements context.Context and stores values of url parameters
@@ -105,6 +113,23 @@ func (c *ctx) Clone() Context {
 func (c *ctx) Request() *http.Request {
 	return c.req
 }
+
+///////////////// RENDERING /////////////////
+
+func (c *ctx) JSON(data interface{}) error {
+	return json.NewEncoder(c).Encode(data)
+}
+
+func (c *ctx) String(format string, a ...interface{}) error {
+	_, err := fmt.Fprintf(c, format, a...)
+	return err
+}
+
+func (c *ctx) XML(data interface{}) error {
+	return xml.NewEncoder(c).Encode(data)
+}
+
+///////////////// RENDERING /////////////////
 
 func (c *ctx) Reset() {
 	c.keys = c.keys[:0]

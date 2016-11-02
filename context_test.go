@@ -1,7 +1,9 @@
 package lion
 
 import (
+	"encoding/xml"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -112,5 +114,72 @@ func TestContextClone(t *testing.T) {
 
 	if !reflect.DeepEqual(old, new) {
 		t.Errorf("Should be equal")
+	}
+}
+
+func TestContextRender(t *testing.T) {
+	tests := map[string][]struct {
+		input    interface{}
+		expected string
+	}{
+		"string": {
+			{
+				input:    "Hello",
+				expected: "Hello",
+			},
+		},
+		"json": {
+			{
+				input: map[string]interface{}{
+					"test": map[string]string{
+						"test2": "val",
+					},
+				},
+				expected: `{"test":{"test2":"val"}}` + "\n",
+			},
+		},
+		"xml": {
+			{
+				input: &struct {
+					XMLName   xml.Name `xml:"person"`
+					Id        int      `xml:"id,attr"`
+					FirstName string   `xml:"name>first"`
+					LastName  string   `xml:"name>last"`
+					Age       int      `xml:"age"`
+					Height    float32  `xml:"height,omitempty"`
+					Married   bool
+					Comment   string `xml:",comment"`
+				}{Id: 13, FirstName: "John", LastName: "Doe", Age: 42},
+				expected: `<person id="13"><name><first>John</first><last>Doe</last></name><age>42</age><Married>false</Married></person>`,
+			},
+		},
+	}
+
+	for dtype, subtests := range tests {
+		t.Run(dtype, func(t *testing.T) {
+			for _, test := range subtests {
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest("GET", "/hello", nil)
+				c := newContextWithResReq(context.Background(), w, r)
+
+				switch dtype {
+				case "json":
+					c.JSON(test.input)
+				case "xml":
+					c.XML(test.input)
+				case "string":
+					c.String(test.input.(string))
+				default:
+					panicl("unsupported test %s", dtype)
+				}
+
+				got := w.Body.String()
+				want := test.expected
+
+				if got != want {
+					t.Errorf("Expected '%s' but got '%s'", want, got)
+				}
+			}
+		})
 	}
 }
