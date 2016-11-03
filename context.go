@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Context key to store *ctx
@@ -35,15 +36,20 @@ type Context interface {
 
 	Request() *http.Request
 
+	// Request
+	Cookie(name string) (*http.Cookie, error)
+	Query(name string) string
+	GetHeader(key string) string
+
+	// Response
 	WithStatus(code int) Context
 	WithHeader(key, value string) Context
+	WithCookie(cookie *http.Cookie) Context
 
 	// Rendering
 	JSON(data interface{}) error
 	XML(data interface{}) error
 	String(format string, a ...interface{}) error
-
-	// Responding
 	Redirect(urlStr string) error
 }
 
@@ -133,9 +139,31 @@ func (c *ctx) Clone() Context {
 	return nc
 }
 
+///////////// REQUEST UTILS ////////////////
+
 func (c *ctx) Request() *http.Request {
 	return c.req
 }
+
+func (c *ctx) Cookie(name string) (*http.Cookie, error) {
+	return c.Request().Cookie(name)
+}
+
+func (c *ctx) Query(name string) string {
+	return c.urlQueries().Get(name)
+}
+
+func (c *ctx) urlQueries() url.Values {
+	return c.Request().URL.Query()
+}
+
+func (c *ctx) GetHeader(key string) string {
+	return c.Request().Header.Get(key)
+}
+
+///////////// REQUEST UTILS ////////////////
+
+///////////// RESPONSE MODIFIERS /////////////
 
 // WithStatus sets the status code for the current request.
 // If the status has already been written it will not change the current status code
@@ -161,7 +189,14 @@ func (c *ctx) WithHeader(key, value string) Context {
 	return c
 }
 
-///////////////// RENDERING /////////////////
+func (c *ctx) WithCookie(cookie *http.Cookie) Context {
+	http.SetCookie(c, cookie)
+	return c
+}
+
+///////////// RESPONSE MODIFIERS /////////////
+
+///////////// RESPONSE RENDERING /////////////
 
 func (c *ctx) JSON(data interface{}) error {
 	b, err := json.Marshal(data)
@@ -203,7 +238,7 @@ func (c *ctx) raw(b []byte, contentType string) error {
 	return err
 }
 
-///////////////// RENDERING /////////////////
+///////////// RESPONSE RENDERING /////////////
 
 func (c *ctx) Redirect(urlStr string) error {
 	if c.code < 300 || c.code > 308 {
