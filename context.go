@@ -50,6 +50,8 @@ type Context interface {
 	JSON(data interface{}) error
 	XML(data interface{}) error
 	String(format string, a ...interface{}) error
+	File(path string) error
+	Attachment(path, filename string) error
 	Redirect(urlStr string) error
 }
 
@@ -225,6 +227,11 @@ func (c *ctx) XML(data interface{}) error {
 func (c *ctx) File(path string) error {
 	http.ServeFile(c, c.Request(), path)
 	return nil
+}
+
+func (c *ctx) Attachment(path, filename string) error {
+	return c.WithHeader("Content-Disposition", "attachment; filename="+filename).
+		File(path)
 }
 
 func (c *ctx) setContentType(ctype string) {
