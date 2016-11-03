@@ -2,7 +2,9 @@ package lion
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -121,8 +123,9 @@ func TestContextClone(t *testing.T) {
 
 func TestContextRender(t *testing.T) {
 	tests := map[string][]struct {
-		input    interface{}
-		expected string
+		input       interface{}
+		expected    string
+		shouldError bool
 	}{
 		"string": {
 			{
@@ -137,7 +140,12 @@ func TestContextRender(t *testing.T) {
 						"test2": "val",
 					},
 				},
-				expected: `{"test":{"test2":"val"}}` + "\n",
+				expected: `{"test":{"test2":"val"}}`,
+			},
+			{
+				input:       math.Inf(1),
+				expected:    "",
+				shouldError: true,
 			},
 		},
 		"xml": {
@@ -160,25 +168,46 @@ func TestContextRender(t *testing.T) {
 	for dtype, subtests := range tests {
 		t.Run(dtype, func(t *testing.T) {
 			for _, test := range subtests {
-				c, w := newTestCtx()
+				t.Run(fmt.Sprintf("%v", test.input), func(t *testing.T) {
+					c, w := newTestCtx()
 
-				switch dtype {
-				case "json":
-					c.JSON(test.input)
-				case "xml":
-					c.XML(test.input)
-				case "string":
-					c.String(test.input.(string))
-				default:
-					panicl("unsupported test %s", dtype)
-				}
+					var ctype string
+					var err error
+					switch dtype {
+					case "json":
+						err = c.JSON(test.input)
+						ctype = contentTypeJSON
+					case "xml":
+						err = c.XML(test.input)
+						ctype = contentTypeXML
+					case "string":
+						err = c.String(test.input.(string))
+						ctype = contentTypeTextPlain
+					default:
+						panicl("unsupported test %s", dtype)
+					}
 
-				got := w.Body.String()
-				want := test.expected
+					if test.shouldError {
+						if err == nil {
+							t.Error("Should error")
+						}
+						return
+					}
 
-				if got != want {
-					t.Errorf("Expected '%s' but got '%s'", want, got)
-				}
+					got := w.Body.String()
+					want := test.expected
+
+					if got != want {
+						t.Errorf("Expected '%s' but got '%s'", want, got)
+					}
+
+					gotType := w.Header().Get("Content-Type")
+					wantType := ctype
+
+					if gotType != wantType {
+						t.Errorf("Expected '%s' but got '%s'", wantType, gotType)
+					}
+				})
 			}
 		})
 	}
@@ -251,6 +280,45 @@ func TestWithHeader(t *testing.T) {
 
 	if w.Header().Get("test") != "val" {
 		t.Errorf("Context: header should be equal")
+	}
+
+}
+
+func TestDoNotWriteStatusIfErr(t *testing.T) {
+	c, w := newTestCtx()
+	err := c.WithStatus(500).JSON(math.Inf(-1))
+	if w.Code != 200 {
+		t.Errorf("Default code should be 200 OK because it should not be written")
+	}
+
+	if err == nil {
+		t.Errorf("Invalid JSON: Should have an err != nil")
+	}
+
+	err = c.WithStatus(401).JSON(map[string]interface{}{
+		"test": map[string]string{
+			"test2": "val",
+		},
+	})
+
+	if w.Code != 401 {
+		t.Errorf("Return code should be 401 but got %s", red(w.Code))
+	}
+}
+
+func TestRedirect(t *testing.T) {
+	c, w := newTestCtx()
+	c.WithStatus(http.StatusTemporaryRedirect).
+		Redirect("/goodbye")
+
+	want := "/goodbye"
+	got := w.Header().Get("Location")
+	if got != want {
+		t.Errorf("Expected '%s' but got '%s'", want, got)
+	}
+
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Errorf("Should have status %d but got %d", http.StatusTemporaryRedirect, w.Code)
 	}
 }
 

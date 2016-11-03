@@ -4,12 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
 )
 
 // Context key to store *ctx
 var ctxKey = &struct{}{}
+
+var (
+	ErrInvalidRedirectStatusCode = errors.New("Invalid redirect status code")
+
+	contentTypeJSON      = "application/json; charset=utf-8"
+	contentTypeXML       = "application/xml; charset=utf-8"
+	contentTypeTextPlain = "text/plain; charset=utf-8"
+	contentTypeTextHTML  = "text/html; charset=utf-8"
+)
 
 // Check Context implements net.Context
 var _ context.Context = (*ctx)(nil)
@@ -32,6 +42,9 @@ type Context interface {
 	JSON(data interface{}) error
 	XML(data interface{}) error
 	String(format string, a ...interface{}) error
+
+	// Responding
+	Redirect(urlStr string) error
 }
 
 // Context implements context.Context and stores values of url parameters
@@ -45,7 +58,8 @@ type ctx struct {
 	keys   []string
 	values []string
 
-	code int
+	code          int
+	statusWritten bool
 }
 
 // newContext creates a new context instance
@@ -126,15 +140,19 @@ func (c *ctx) Request() *http.Request {
 // WithStatus sets the status code for the current request.
 // If the status has already been written it will not change the current status code
 func (c *ctx) WithStatus(code int) Context {
-	if !c.isStatusWritten() {
-		c.WriteHeader(code)
-	}
-
+	c.code = code
 	return c
 }
 
+func (c *ctx) writeHeader() {
+	if !c.isStatusWritten() {
+		c.WriteHeader(c.code)
+		c.statusWritten = true
+	}
+}
+
 func (c *ctx) isStatusWritten() bool {
-	return c.code != 0
+	return c.statusWritten
 }
 
 // WithHeader is a convenient alias for http.ResponseWriter.Header().Set()
@@ -146,16 +164,27 @@ func (c *ctx) WithHeader(key, value string) Context {
 ///////////////// RENDERING /////////////////
 
 func (c *ctx) JSON(data interface{}) error {
-	return json.NewEncoder(c).Encode(data)
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.raw(b, contentTypeJSON)
 }
 
 func (c *ctx) String(format string, a ...interface{}) error {
 	_, err := fmt.Fprintf(c, format, a...)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *ctx) XML(data interface{}) error {
-	return xml.NewEncoder(c).Encode(data)
+	b, err := xml.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.raw(b, contentTypeXML)
 }
 
 func (c *ctx) File(path string) error {
@@ -163,7 +192,27 @@ func (c *ctx) File(path string) error {
 	return nil
 }
 
+func (c *ctx) setContentType(ctype string) {
+	c.Header().Set("Content-Type", ctype)
+}
+
+func (c *ctx) raw(b []byte, contentType string) error {
+	c.setContentType(contentType)
+	c.writeHeader()
+	_, err := c.Write(b)
+	return err
+}
+
 ///////////////// RENDERING /////////////////
+
+func (c *ctx) Redirect(urlStr string) error {
+	if c.code < 300 || c.code > 308 {
+		return ErrInvalidRedirectStatusCode
+	}
+
+	http.Redirect(c, c.Request(), urlStr, c.code)
+	return nil
+}
 
 func (c *ctx) Reset() {
 	c.keys = c.keys[:0]
