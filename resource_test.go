@@ -45,8 +45,8 @@ func (tr testResource) Options(w http.ResponseWriter, r *http.Request) {
 func (tr testResource) Connect(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Connect")
 }
-func (tr testResource) Patch(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Patch")
+func (tr testResource) Patch(c Context) {
+	c.String("Patch")
 }
 
 func TestResources(t *testing.T) {

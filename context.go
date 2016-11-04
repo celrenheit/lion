@@ -291,7 +291,7 @@ func C(req *http.Request) Context {
 			return ctx
 		}
 	}
-	return newContextWithParent(c)
+	return nil
 }
 
 // Param returns the value of a url param base on the passed context

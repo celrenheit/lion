@@ -42,8 +42,19 @@ func isHandlerFuncInResource(m string, r Resource) (func(w http.ResponseWriter, 
 	if !method.IsValid() {
 		return nil, false
 	}
+
+	// Native http.HandlerFunc
 	fn, ok := method.Interface().(func(w http.ResponseWriter, r *http.Request))
-	return fn, ok
+	if ok {
+		return fn, true
+	}
+
+	// ... or check for a contextual handler
+	cfn, ok := method.Interface().(func(Context))
+	if !ok {
+		return nil, false
+	}
+	return wrapContextHandler(cfn), ok
 }
 
 // checks if there is a NameMiddlewares() Middlewares method available on the Resource r
@@ -56,4 +67,15 @@ func isMiddlewareInResource(m string, r Resource) (func() Middlewares, bool) {
 
 	fn, ok := method.Interface().(func() Middlewares)
 	return fn, ok
+}
+
+func wrapContextHandler(fn func(Context)) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c := C(r)
+		if c == nil {
+			c = newContextWithResReq(r.Context(), w, r)
+		}
+
+		fn(c)
+	})
 }

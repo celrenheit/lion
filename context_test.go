@@ -63,9 +63,8 @@ func TestContextAddParam(t *testing.T) {
 func TestContextC(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	c := C(req)
-	ctx := c.(*ctx)
-	if ctx.parent != context.Background() {
-		t.Error("Context C: Parent should be context.TODO()")
+	if c != nil {
+		t.Errorf("Should be nil")
 	}
 }
 
