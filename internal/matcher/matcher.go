@@ -1,7 +1,7 @@
 package matcher
 
 type Matcher interface {
-	Set(pattern string, values interface{}, tags Tags)
+	Set(pattern string, values interface{}, tags Tags) GetSetter
 	Get(pattern string, tags Tags) (Context, interface{})
 	GetWithContext(c Context, pattern string, tags Tags) interface{}
 }
@@ -46,9 +46,10 @@ func Custom(cfg *Config) Matcher {
 	}
 }
 
-func (m *matcher) Set(pattern string, values interface{}, tags Tags) {
-	m.tree.addRoute(m.tree.root, pattern, values, tags)
+func (m *matcher) Set(pattern string, values interface{}, tags Tags) GetSetter {
+	value := m.tree.addRoute(m.tree.root, pattern, values, tags)
 	m.postvalidation(pattern)
+	return value
 }
 
 func (m *matcher) Get(pattern string, tags Tags) (Context, interface{}) {

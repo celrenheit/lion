@@ -35,7 +35,7 @@ type Router struct {
 
 	notFoundHandler http.Handler
 
-	registeredHandlers []registeredHandler // Used for Mount()
+	routes []*route // Used for Mount()
 
 	pool sync.Pool
 
@@ -71,6 +71,7 @@ func (r *Router) Subrouter(mws ...Middleware) *Router {
 		namedMiddlewares: make(map[string]Middlewares),
 		host:             r.host,
 		pool:             newCtxPool(),
+		routes:           []*route{},
 	}
 	nr.Use(mws...)
 	return nr
@@ -118,105 +119,107 @@ func (r *Router) Host(hostpattern string) *Router {
 }
 
 // Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
-func (r *Router) Any(pattern string, handler http.Handler) {
-	for _, m := range allowedHTTPMethods {
-		r.Handle(m, pattern, handler)
+func (r *Router) Any(pattern string, handler http.Handler) Route {
+	route := r.Handle(allowedHTTPMethods[0], pattern, handler)
+	for _, m := range allowedHTTPMethods[1:] {
+		route.WithMethod(m, r.middlewares.BuildHandler(handler))
 	}
+	return route
 }
 
 // Get registers an http GET method receiver with the provided Handler
-func (r *Router) Get(pattern string, handler http.Handler) {
-	r.Handle("GET", pattern, handler)
+func (r *Router) Get(pattern string, handler http.Handler) Route {
+	return r.Handle("GET", pattern, handler)
 }
 
 // Head registers an http HEAD method receiver with the provided Handler
-func (r *Router) Head(pattern string, handler http.Handler) {
-	r.Handle("HEAD", pattern, handler)
+func (r *Router) Head(pattern string, handler http.Handler) Route {
+	return r.Handle("HEAD", pattern, handler)
 }
 
 // Post registers an http POST method receiver with the provided Handler
-func (r *Router) Post(pattern string, handler http.Handler) {
-	r.Handle("POST", pattern, handler)
+func (r *Router) Post(pattern string, handler http.Handler) Route {
+	return r.Handle("POST", pattern, handler)
 }
 
 // Put registers an http PUT method receiver with the provided Handler
-func (r *Router) Put(pattern string, handler http.Handler) {
-	r.Handle("PUT", pattern, handler)
+func (r *Router) Put(pattern string, handler http.Handler) Route {
+	return r.Handle("PUT", pattern, handler)
 }
 
 // Delete registers an http DELETE method receiver with the provided Handler
-func (r *Router) Delete(pattern string, handler http.Handler) {
-	r.Handle("DELETE", pattern, handler)
+func (r *Router) Delete(pattern string, handler http.Handler) Route {
+	return r.Handle("DELETE", pattern, handler)
 }
 
 // Trace registers an http TRACE method receiver with the provided Handler
-func (r *Router) Trace(pattern string, handler http.Handler) {
-	r.Handle("TRACE", pattern, handler)
+func (r *Router) Trace(pattern string, handler http.Handler) Route {
+	return r.Handle("TRACE", pattern, handler)
 }
 
 // Options registers an http OPTIONS method receiver with the provided Handler
-func (r *Router) Options(pattern string, handler http.Handler) {
-	r.Handle("OPTIONS", pattern, handler)
+func (r *Router) Options(pattern string, handler http.Handler) Route {
+	return r.Handle("OPTIONS", pattern, handler)
 }
 
 // Connect registers an http CONNECT method receiver with the provided Handler
-func (r *Router) Connect(pattern string, handler http.Handler) {
-	r.Handle("CONNECT", pattern, handler)
+func (r *Router) Connect(pattern string, handler http.Handler) Route {
+	return r.Handle("CONNECT", pattern, handler)
 }
 
 // Patch registers an http PATCH method receiver with the provided Handler
-func (r *Router) Patch(pattern string, handler http.Handler) {
-	r.Handle("PATCH", pattern, handler)
+func (r *Router) Patch(pattern string, handler http.Handler) Route {
+	return r.Handle("PATCH", pattern, handler)
 }
 
 // AnyFunc registers the provided HandlerFunc for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
-func (r *Router) AnyFunc(pattern string, handler http.HandlerFunc) {
-	r.Any(pattern, http.HandlerFunc(handler))
+func (r *Router) AnyFunc(pattern string, handler http.HandlerFunc) Route {
+	return r.Any(pattern, http.HandlerFunc(handler))
 }
 
 // GetFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) GetFunc(pattern string, fn http.HandlerFunc) {
-	r.Get(pattern, http.HandlerFunc(fn))
+func (r *Router) GetFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Get(pattern, http.HandlerFunc(fn))
 }
 
 // HeadFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) HeadFunc(pattern string, fn http.HandlerFunc) {
-	r.Head(pattern, http.HandlerFunc(fn))
+func (r *Router) HeadFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Head(pattern, http.HandlerFunc(fn))
 }
 
 // PostFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PostFunc(pattern string, fn http.HandlerFunc) {
-	r.Post(pattern, http.HandlerFunc(fn))
+func (r *Router) PostFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Post(pattern, http.HandlerFunc(fn))
 }
 
 // PutFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PutFunc(pattern string, fn http.HandlerFunc) {
-	r.Put(pattern, http.HandlerFunc(fn))
+func (r *Router) PutFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Put(pattern, http.HandlerFunc(fn))
 }
 
 // DeleteFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) DeleteFunc(pattern string, fn http.HandlerFunc) {
-	r.Delete(pattern, http.HandlerFunc(fn))
+func (r *Router) DeleteFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Delete(pattern, http.HandlerFunc(fn))
 }
 
 // TraceFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) TraceFunc(pattern string, fn http.HandlerFunc) {
-	r.Trace(pattern, http.HandlerFunc(fn))
+func (r *Router) TraceFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Trace(pattern, http.HandlerFunc(fn))
 }
 
 // OptionsFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) OptionsFunc(pattern string, fn http.HandlerFunc) {
-	r.Options(pattern, http.HandlerFunc(fn))
+func (r *Router) OptionsFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Options(pattern, http.HandlerFunc(fn))
 }
 
 // ConnectFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) ConnectFunc(pattern string, fn http.HandlerFunc) {
-	r.Connect(pattern, http.HandlerFunc(fn))
+func (r *Router) ConnectFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Connect(pattern, http.HandlerFunc(fn))
 }
 
 // PatchFunc wraps a HandlerFunc as a Handler and registers it to the router
-func (r *Router) PatchFunc(pattern string, fn http.HandlerFunc) {
-	r.Patch(pattern, http.HandlerFunc(fn))
+func (r *Router) PatchFunc(pattern string, fn http.HandlerFunc) Route {
+	return r.Patch(pattern, http.HandlerFunc(fn))
 }
 
 // Use registers middlewares to be used
@@ -242,7 +245,7 @@ func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, n
 }
 
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
-func (r *Router) Handle(method, pattern string, handler http.Handler) {
+func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 	var p string
 	if !r.isRoot() && pattern == "/" && r.pattern != "" {
 		p = r.pattern
@@ -251,23 +254,39 @@ func (r *Router) Handle(method, pattern string, handler http.Handler) {
 	}
 
 	built := r.buildMiddlewares(handler)
-	r.registeredHandlers = append(r.registeredHandlers, registeredHandler{r.host, method, pattern, built})
+
 	rm := r.router.hostrm.Register(r.host)
-	rm.Register(method, p, built)
+	rt := rm.Register(method, p, built)
+
+	// If this route does not exist in this Router instance then add it
+	if _, ok := r.findRoute(rt); !ok {
+		rt.pattern = p
+		rt.host = r.host
+		r.routes = append(r.routes, rt)
+	}
+	return rt
 }
 
-type registeredHandler struct {
-	host, method, pattern string
-	handler               http.Handler
+func (r *Router) findRoute(rt *route) (*route, bool) {
+	for _, route := range r.routes {
+		if route == rt {
+			return route, true
+		}
+	}
+
+	return nil, false
 }
 
 // Mount mounts a subrouter at the provided pattern
 func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
 	host := r.host
-	for _, rh := range router.registeredHandlers {
-		r.Host(rh.host)
-		r.Handle(rh.method, path.Join(pattern, rh.pattern), rh.handler)
+	for _, route := range router.routes {
+		r.Host(route.Host())
+		for _, method := range route.Methods() {
+			r.Handle(method, path.Join(pattern, route.Pattern()), route.Handler(method))
+		}
 	}
+
 	// Restore previous host
 	r.host = host
 }
@@ -285,8 +304,8 @@ func (r *Router) isRoot() bool {
 }
 
 // HandleFunc wraps a HandlerFunc and pass it to Handle method
-func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) {
-	r.Handle(method, pattern, http.HandlerFunc(fn))
+func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) Route {
+	return r.Handle(method, pattern, http.HandlerFunc(fn))
 }
 
 // ServeHTTP finds the handler associated with the request's path.
@@ -423,4 +442,20 @@ func validatePattern(pattern string) {
 	if len(pattern) == 0 || pattern[0] != '/' {
 		panic("path must start with '/' in path '" + pattern + "'")
 	}
+}
+
+// Route get the Route associated with the name specified.
+func (r *Router) Route(name string) Route {
+	// Since all routes have their name empty by default,
+	// we cannot return the first route with an empty name
+	if name == "" {
+		return nil
+	}
+	for _, route := range r.routes {
+		if route.Name() == name {
+			return route
+		}
+	}
+
+	return nil
 }

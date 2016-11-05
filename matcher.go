@@ -9,7 +9,7 @@ import (
 
 // RegisterMatcher registers and matches routes to Handlers
 type registerMatcher interface {
-	Register(method, pattern string, handler http.Handler)
+	Register(method, pattern string, handler http.Handler) *route
 	Match(*ctx, *http.Request) (*ctx, http.Handler)
 }
 
@@ -30,7 +30,7 @@ func newPathMatcher() *pathMatcher {
 		WildcardChar: '*',
 		Separators:   "/.",
 		New: func() matcher.GetSetter {
-			return &methodsHandlers{}
+			return &route{}
 		},
 	}
 
@@ -41,10 +41,11 @@ func newPathMatcher() *pathMatcher {
 	return r
 }
 
-func (d *pathMatcher) Register(method, pattern string, handler http.Handler) {
+func (d *pathMatcher) Register(method, pattern string, handler http.Handler) *route {
 	d.prevalidation(method, pattern)
 
-	d.matcher.Set(pattern, handler, matcher.Tags{method})
+	rt := d.matcher.Set(pattern, handler, matcher.Tags{method})
+	return rt.(*route)
 }
 
 func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
@@ -110,95 +111,4 @@ func isInStringSlice(slice []string, expected string) bool {
 		}
 	}
 	return false
-}
-
-type methodsHandlers struct {
-	get     http.Handler
-	head    http.Handler
-	post    http.Handler
-	put     http.Handler
-	delete  http.Handler
-	trace   http.Handler
-	options http.Handler
-	connect http.Handler
-	patch   http.Handler
-}
-
-func (gs *methodsHandlers) Set(value interface{}, tags matcher.Tags) {
-	if len(tags) != 1 {
-		panicl("Length != 1")
-	}
-
-	method := tags[0]
-
-	var handler http.Handler
-	if value == nil {
-		handler = nil
-	} else {
-		if h, ok := value.(http.Handler); !ok {
-			panicl("Not handler")
-		} else {
-			handler = h
-		}
-	}
-
-	gs.addHandler(method, handler)
-}
-
-func (gs *methodsHandlers) Get(tags matcher.Tags) interface{} {
-	if len(tags) != 1 {
-		return nil
-	}
-
-	method := tags[0]
-
-	return gs.getHandler(method)
-}
-
-func (gs *methodsHandlers) addHandler(method string, handler http.Handler) {
-	switch method {
-	case GET:
-		gs.get = handler
-	case HEAD:
-		gs.head = handler
-	case POST:
-		gs.post = handler
-	case PUT:
-		gs.put = handler
-	case DELETE:
-		gs.delete = handler
-	case TRACE:
-		gs.trace = handler
-	case OPTIONS:
-		gs.options = handler
-	case CONNECT:
-		gs.connect = handler
-	case PATCH:
-		gs.patch = handler
-	}
-}
-
-func (gs *methodsHandlers) getHandler(method string) http.Handler {
-	switch method {
-	case GET:
-		return gs.get
-	case HEAD:
-		return gs.head
-	case POST:
-		return gs.post
-	case PUT:
-		return gs.put
-	case DELETE:
-		return gs.delete
-	case TRACE:
-		return gs.trace
-	case OPTIONS:
-		return gs.options
-	case CONNECT:
-		return gs.connect
-	case PATCH:
-		return gs.patch
-	default:
-		return nil
-	}
 }

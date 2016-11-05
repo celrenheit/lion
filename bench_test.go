@@ -38,7 +38,7 @@ func benchRequest(b *testing.B, router http.Handler, r *http.Request) {
 	}
 }
 
-func benchRoutes(b *testing.B, router http.Handler, routes []route) {
+func benchRoutes(b *testing.B, router http.Handler, routes []testroute) {
 	w := new(mockResponseWriter)
 	r, _ := http.NewRequest("GET", "/", nil)
 	u := r.URL
@@ -58,7 +58,7 @@ func benchRoutes(b *testing.B, router http.Handler, routes []route) {
 	}
 }
 
-type route struct {
+type testroute struct {
 	method string
 	path   string
 }
@@ -78,7 +78,7 @@ func (m *mockResponseWriter) WriteString(s string) (n int, err error) {
 
 func (m *mockResponseWriter) WriteHeader(int) {}
 
-func loadLion(routes []route) http.Handler {
+func loadLion(routes []testroute) http.Handler {
 	h := http.HandlerFunc(httpHandlerFunc)
 	mux := New()
 	for _, route := range routes {
@@ -102,7 +102,7 @@ func loadLion(routes []route) http.Handler {
 }
 func httpHandlerFunc(w http.ResponseWriter, r *http.Request) {}
 
-var githubAPI = []route{
+var githubAPI = []testroute{
 	// OAuth Authorizations
 	{"GET", "/authorizations"},
 	{"GET", "/authorizations/:id"},

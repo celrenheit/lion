@@ -44,7 +44,7 @@ func (t *tree) AllChars() string {
 	return string([]byte{t.ParamChar(), t.WildcardChar()})
 }
 
-func (t *tree) setValue(n *node, value interface{}, tags Tags) {
+func (t *tree) setValue(n *node, value interface{}, tags Tags) GetSetter {
 	if t.cfg.New != nil {
 		if n.GetSetter == nil {
 			n.GetSetter = t.cfg.New()
@@ -54,6 +54,8 @@ func (t *tree) setValue(n *node, value interface{}, tags Tags) {
 	if n.GetSetter != nil {
 		n.GetSetter.Set(value, tags)
 	}
+
+	return n.GetSetter
 }
 
 func newTree(cfg *Config) *tree {
@@ -197,7 +199,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 	return out
 }
 
-func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) {
+func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) GetSetter {
 	splitted := tree.split(pattern)
 	pattern = strings.Replace(pattern, `\`, "", -1)
 
@@ -340,7 +342,7 @@ func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tag
 		}
 	}
 
-	tree.setValue(n, values, tags)
+	return tree.setValue(n, values, tags)
 }
 
 // split splits a pattern into multiple nodes types
