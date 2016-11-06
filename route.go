@@ -6,24 +6,27 @@ import (
 	"github.com/celrenheit/lion/internal/matcher"
 )
 
+// TODO: add this later
+// WithMethod adds a new handler to the corresponding HTTP method.
+// The handler will not be built with middlewares.
+// If you want to add middleware you should add them by yourself.
+// WithMethod(method string, handler http.Handler) Route
+
 type Route interface {
 	WithName(name string) Route
-	// WithMethod adds a new handler to the corresponding HTTP method.
-	// The handler will not be built with middlewares.
-	// If you want to add middleware you should add them by yourself.
-	WithMethod(method string, handler http.Handler) Route
 
 	Methods() (methods []string)
 	Host() string
 	Name() string
 	Pattern() string
 	Handler(method string) http.Handler
-	Path(pairs ...string) string
+	Path(params map[string]string) (string, error)
 }
 
 type route struct {
 	host, name, pattern string
-	mws                 Middlewares
+
+	pathMatcher registerMatcher
 
 	get     http.Handler
 	head    http.Handler
@@ -40,11 +43,6 @@ func newRoute() *route {
 	return &route{}
 }
 
-func (r *route) Uses(mws ...Middleware) Route {
-	r.mws = append(r.mws, mws...)
-	return r
-}
-
 func (r *route) WithName(name string) Route {
 	r.name = name
 	return r
@@ -55,8 +53,10 @@ func (r *route) WithPattern(pattern string) Route {
 	return r
 }
 
-func (r *route) WithMethod(method string, handler http.Handler) Route {
-	r.addHandler(method, handler)
+func (r *route) withMethods(handler http.Handler, methods ...string) Route {
+	for _, method := range methods {
+		r.addHandler(method, handler)
+	}
 	return r
 }
 
@@ -81,9 +81,8 @@ func (r *route) Pattern() string {
 	return r.pattern
 }
 
-func (r *route) Path(pairs ...string) string {
-	// TODO: generate path from pairs parameter
-	return r.pattern
+func (r *route) Path(params map[string]string) (string, error) {
+	return r.pathMatcher.Path(r.Pattern(), params)
 }
 
 func (r *route) Handler(method string) http.Handler {

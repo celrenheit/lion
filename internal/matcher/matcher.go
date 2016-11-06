@@ -1,9 +1,12 @@
 package matcher
 
+import "fmt"
+
 type Matcher interface {
 	Set(pattern string, values interface{}, tags Tags) GetSetter
 	Get(pattern string, tags Tags) (Context, interface{})
 	GetWithContext(c Context, pattern string, tags Tags) interface{}
+	Eval(pattern string, params map[string]string) (string, error)
 }
 
 type GetSetter interface {
@@ -63,6 +66,11 @@ func (m *matcher) GetWithContext(c Context, pattern string, tags Tags) interface
 	if n == nil {
 		return nil
 	}
+
+	if !m.tree.isLeaf(n, tags) {
+		return nil
+	}
+
 	return m.tree.getValue(n, tags)
 }
 
@@ -96,6 +104,41 @@ func (m *matcher) validateParamNode(nn *node, pattern string, pnames []string) {
 	if isInStringSlice(pnames, nn.pname) {
 		panicm("duplicate parameter %s for %s", nn.pname, pattern)
 	}
+}
+
+func (m *matcher) Eval(pattern string, params map[string]string) (string, error) {
+	// TODO: Avoid .split()
+	parents := m.tree.split(pattern)
+
+	var path string
+	for _, fn := range parents {
+		switch fn.nodeType {
+		case static:
+			path += fn.pattern
+		case param:
+			p, ok := params[fn.pname]
+			if !ok {
+				return "", fmt.Errorf("Param '%s' not set", fn.pname)
+			}
+
+			if fn.re == nil {
+				path += p
+			} else {
+				if foundStr := fn.re.FindString(p); len(foundStr) != len(p) {
+					return "", fmt.Errorf("Param '%s' does not match entirely the regex pattern: '%s'", p, fn.re.String())
+				}
+				path += p
+			}
+		case wildcard:
+			p, ok := params[fn.pname]
+			if !ok {
+				return "", fmt.Errorf("Wildcard Param '%s' not set", fn.pname)
+			}
+			path += p
+		}
+	}
+
+	return path, nil
 }
 
 type Tags []string

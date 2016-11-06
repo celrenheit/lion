@@ -83,7 +83,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 	for {
 
-		if search == "" && tree.isLeaf(n, tags) {
+		if search == "" && n.GetSetter != nil {
 			out = n
 			break
 		}

@@ -120,11 +120,9 @@ func (r *Router) Host(hostpattern string) *Router {
 
 // Any registers the provided Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
 func (r *Router) Any(pattern string, handler http.Handler) Route {
-	route := r.Handle(allowedHTTPMethods[0], pattern, handler)
-	for _, m := range allowedHTTPMethods[1:] {
-		route.WithMethod(m, r.middlewares.BuildHandler(handler))
-	}
-	return route
+	rt := r.Handle(allowedHTTPMethods[0], pattern, handler).(*route)
+	rt.withMethods(r.middlewares.BuildHandler(handler), allowedHTTPMethods[1:]...)
+	return rt
 }
 
 // Get registers an http GET method receiver with the provided Handler
@@ -262,6 +260,7 @@ func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 	if _, ok := r.findRoute(rt); !ok {
 		rt.pattern = p
 		rt.host = r.host
+		rt.pathMatcher = rm
 		r.routes = append(r.routes, rt)
 	}
 	return rt

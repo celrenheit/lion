@@ -11,6 +11,7 @@ import (
 type registerMatcher interface {
 	Register(method, pattern string, handler http.Handler) *route
 	Match(*ctx, *http.Request) (*ctx, http.Handler)
+	Path(pattern string, params map[string]string) (string, error)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -102,6 +103,10 @@ func (d *pathMatcher) automaticOptionsHandler(c *ctx, path string) http.Handler 
 		w.Header().Set("Accept", joined)
 		w.WriteHeader(http.StatusOK)
 	})
+}
+
+func (d *pathMatcher) Path(pattern string, params map[string]string) (string, error) {
+	return d.matcher.Eval(pattern, params)
 }
 
 func isInStringSlice(slice []string, expected string) bool {
