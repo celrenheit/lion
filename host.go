@@ -36,10 +36,6 @@ func newHostMatcher() *hostMatcher {
 	}
 }
 
-type registererRMGrabber struct {
-	rm registerMatcher
-}
-
 func (hm *hostMatcher) Register(pattern string) registerMatcher {
 	host := pattern
 
@@ -54,11 +50,10 @@ func (hm *hostMatcher) Register(pattern string) registerMatcher {
 		if host == "" {
 			host = defaultAnyHostPattern
 		}
-
-		rg := &registererRMGrabber{}
+		hs := &hostStore{}
 		reversedHost := reverseHost(host)
-		hm.matcher.Set(reversedHost, rg, nil)
-		return rg.rm
+		hs = hm.matcher.Set(reversedHost, hs, nil).(*hostStore)
+		return hs.rm
 	} else {
 		return hm.defaultRM
 	}
@@ -94,11 +89,6 @@ func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
 	// Overwrite RegisterMatcher
 	if rm, ok := value.(registerMatcher); ok {
 		hs.rm = rm
-	}
-
-	// Little hack to grab the pointer of the underlying RegisterMatcher
-	if rg, ok := value.(*registererRMGrabber); ok {
-		rg.rm = hs.rm
 	}
 }
 
