@@ -10,6 +10,9 @@ type tree struct {
 	root          *node
 	cfg           *Config
 	searchHistory []string
+
+	mainSep, optsSep string
+	allChars         string
 }
 
 func (t *tree) ParamChar() byte {
@@ -21,19 +24,11 @@ func (t *tree) WildcardChar() byte {
 }
 
 func (t *tree) MainSeparators() string {
-	if len(t.cfg.Separators) > 0 {
-		return string(t.cfg.Separators[0])
-	}
-
-	return ""
+	return t.mainSep
 }
 
 func (t *tree) OptionalSeparators() string {
-	if len(t.cfg.Separators) > 1 {
-		return t.cfg.Separators[1:]
-	}
-
-	return ""
+	return t.optsSep
 }
 
 func (t *tree) Separators() string {
@@ -41,7 +36,7 @@ func (t *tree) Separators() string {
 }
 
 func (t *tree) AllChars() string {
-	return string([]byte{t.ParamChar(), t.WildcardChar()})
+	return t.allChars
 }
 
 func (t *tree) setValue(n *node, value interface{}, tags Tags) GetSetter {
@@ -59,10 +54,24 @@ func (t *tree) setValue(n *node, value interface{}, tags Tags) GetSetter {
 }
 
 func newTree(cfg *Config) *tree {
-	return &tree{
+	t := &tree{
 		root: &node{},
 		cfg:  cfg,
 	}
+
+	if len(t.cfg.Separators) == 0 {
+		panicm("Separators should not be empty")
+	}
+
+	// Caching chars and separators
+	t.allChars = string(t.ParamChar()) + string(t.WildcardChar())
+
+	t.mainSep = string(t.cfg.Separators[0])
+	if len(t.cfg.Separators) > 1 {
+		t.optsSep = t.cfg.Separators[1:]
+	}
+
+	return t
 }
 
 func (t *tree) getValue(n *node, tags Tags) interface{} {
