@@ -528,6 +528,9 @@ func TestAutomaticOptions(t *testing.T) {
 		ExpectStatus(http.StatusOK).
 		ExpectHeader("Accept", "POST,PUT,TRACE,PATCH,OPTIONS")
 
+	test.Get("/api").Do().
+		ExpectStatus(http.StatusMethodNotAllowed)
+
 	test.Options("/404").Do().
 		ExpectStatus(http.StatusNotFound).
 		ExpectHeader("Accept", "")

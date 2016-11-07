@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -54,14 +55,24 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 
 	d.tags[0] = r.Method
 
-	h := d.matcher.GetWithContext(c, p, d.tags)
+	h, err := d.matcher.GetWithContext(c, p, d.tags)
+	if err == matcher.ErrNotFound {
+		return c, nil
+	}
 
-	if h == nil {
+	if err == matcher.ErrTagsNotAllowed {
+
+		// Automatic OPTIONS
 		if r.Method == OPTIONS {
 			hh := d.automaticOptionsHandler(c, r.URL.Path)
 			return c, hh
 		}
-		return c, nil
+
+		// Method not allowed
+		return c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprintf(w, http.StatusText(http.StatusMethodNotAllowed))
+		})
 	}
 
 	return c, h.(http.Handler)
@@ -86,7 +97,7 @@ func (d *pathMatcher) automaticOptionsHandler(c *ctx, path string) http.Handler 
 		}
 
 		d.tags[0] = method
-		h := d.matcher.GetWithContext(c, path, d.tags)
+		h, _ := d.matcher.GetWithContext(c, path, d.tags)
 		if h != nil {
 			allowed = append(allowed, method)
 		}

@@ -1,11 +1,19 @@
 package matcher
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrNotFound       = errors.New("not found")
+	ErrTagsNotAllowed = errors.New("tags not allowed")
+)
 
 type Matcher interface {
 	Set(pattern string, values interface{}, tags Tags) GetSetter
-	Get(pattern string, tags Tags) (Context, interface{})
-	GetWithContext(c Context, pattern string, tags Tags) interface{}
+	Get(pattern string, tags Tags) (Context, interface{}, error)
+	GetWithContext(c Context, pattern string, tags Tags) (interface{}, error)
 	Eval(pattern string, params map[string]string) (string, error)
 }
 
@@ -55,23 +63,24 @@ func (m *matcher) Set(pattern string, values interface{}, tags Tags) GetSetter {
 	return value
 }
 
-func (m *matcher) Get(pattern string, tags Tags) (Context, interface{}) {
+func (m *matcher) Get(pattern string, tags Tags) (Context, interface{}, error) {
 	c := NewContext()
-	v := m.GetWithContext(c, pattern, tags)
-	return c, v
+	v, err := m.GetWithContext(c, pattern, tags)
+	return c, v, err
 }
 
-func (m *matcher) GetWithContext(c Context, pattern string, tags Tags) interface{} {
+func (m *matcher) GetWithContext(c Context, pattern string, tags Tags) (interface{}, error) {
 	n := m.tree.findNode(c, pattern, tags)
 	if n == nil {
-		return nil
+		return nil, ErrNotFound
 	}
 
-	if !m.tree.isLeaf(n, tags) {
-		return nil
+	val := m.tree.getValue(n, tags)
+	if val == nil {
+		return nil, ErrTagsNotAllowed
 	}
 
-	return m.tree.getValue(n, tags)
+	return val, nil
 }
 
 func (m *matcher) postvalidation(pattern string) {

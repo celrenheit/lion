@@ -62,7 +62,7 @@ func (hm *hostMatcher) Register(pattern string) registerMatcher {
 func (hm *hostMatcher) Match(c *ctx, req *http.Request) http.Handler {
 	if hm.multihost {
 		reversedHost := reverseHost(req.Host)
-		value := hm.matcher.GetWithContext(c, reversedHost, nil)
+		value, _ := hm.matcher.GetWithContext(c, reversedHost, nil)
 		// Delete wildcard param
 		// TODO: Skip this step for performance reasons
 		// (Maybe by adding a blacklisted or skiplisted params on host matcher)
