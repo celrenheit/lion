@@ -63,8 +63,7 @@ type ctx struct {
 	parent context.Context
 	req    *http.Request
 
-	keys   []string
-	values []string
+	params []parameter
 
 	code          int
 	statusWritten bool
@@ -104,8 +103,7 @@ func (c *ctx) Value(key interface{}) interface{} {
 }
 
 func (c *ctx) AddParam(key, val string) {
-	c.keys = append(c.keys, key)
-	c.values = append(c.values, val)
+	c.params = append(c.params, parameter{key, val})
 }
 
 // Param returns the value of a param.
@@ -117,9 +115,9 @@ func (c *ctx) Param(key string) string {
 
 // ParamOk returns the value of a param and a boolean that indicates if the param exists.
 func (c *ctx) ParamOk(key string) (string, bool) {
-	for i, name := range c.keys {
-		if name == key {
-			return c.values[i], true
+	for _, p := range c.params {
+		if p.key == key {
+			return p.val, true
 		}
 	}
 
@@ -129,10 +127,8 @@ func (c *ctx) ParamOk(key string) (string, bool) {
 func (c *ctx) Clone() Context {
 	nc := newContext()
 	nc.parent = c.parent
-	nc.keys = make([]string, len(c.keys), cap(c.keys))
-	copy(nc.keys, c.keys)
-	nc.values = make([]string, len(c.values), cap(c.values))
-	copy(nc.values, c.values)
+	nc.params = make([]parameter, len(c.params), cap(c.params))
+	copy(nc.params, c.params)
 
 	// shallow copy of request
 	nr := &c.req
@@ -257,8 +253,7 @@ func (c *ctx) Redirect(urlStr string) error {
 }
 
 func (c *ctx) Reset() {
-	c.keys = c.keys[:0]
-	c.values = c.values[:0]
+	c.params = c.params[:0]
 	c.parent = nil
 	c.req = nil
 	c.ResponseWriter = nil
@@ -270,13 +265,12 @@ func (c *ctx) Remove(key string) {
 		panicl("Cannot remove unknown key '%s' from context", key)
 	}
 
-	c.keys = append(c.keys[:i], c.keys[i+1:]...)
-	c.values = append(c.values[:i], c.values[i+1:]...)
+	c.params = append(c.params[:i], c.params[i+1:]...)
 }
 
 func (c *ctx) indexOf(key string) int {
-	for i := len(c.keys) - 1; i >= 0; i-- {
-		if c.keys[i] == key {
+	for i := len(c.params) - 1; i >= 0; i-- {
+		if c.params[i].key == key {
 			return i
 		}
 	}
@@ -302,4 +296,9 @@ func Param(req *http.Request, key string) string {
 func setParamContext(req *http.Request, c *ctx) *http.Request {
 	c.parent = req.Context()
 	return req.WithContext(c)
+}
+
+type parameter struct {
+	key string
+	val string
 }

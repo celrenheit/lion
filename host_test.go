@@ -97,8 +97,8 @@ func TestHostMatcher(t *testing.T) {
 		h := hm.Match(c, req)
 		req = setParamContext(req, c)
 
-		if len(test.expectedParams) != len(c.keys) {
-			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.keys), c.toMap(), test.input)
+		if len(test.expectedParams) != len(c.params) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.params), c.toMap(), test.input)
 		}
 
 		for k, v := range test.expectedParams {

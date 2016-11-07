@@ -19,8 +19,8 @@ type mss map[string]string
 
 func (p *ctx) toMap() mss {
 	m := mss{}
-	for i := range p.keys {
-		m[p.keys[i]] = p.values[i]
+	for i := range p.params {
+		m[p.params[i].key] = p.params[i].val
 	}
 	return m
 }
@@ -29,8 +29,8 @@ func TestContextAddParam(t *testing.T) {
 	c := newContext()
 	c.parent = context.WithValue(context.TODO(), "parentKey", "parentVal")
 	c.AddParam("key", "val")
-	if len(c.keys) != 1 {
-		t.Errorf("Length of keys should be 1 but got %s", red(len(c.keys)))
+	if len(c.params) != 1 {
+		t.Errorf("Length of params should be 1 but got %s", red(len(c.params)))
 	}
 
 	val := c.Value("key")

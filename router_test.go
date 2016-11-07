@@ -181,8 +181,8 @@ func TestRouteMatching(t *testing.T) {
 		h := mux.hostrm.Match(c, req)
 		req = setParamContext(req, c)
 
-		if len(test.ExpectedParams) != len(c.keys) {
-			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.keys), c.toMap(), test.Input)
+		if len(test.ExpectedParams) != len(c.params) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.params), c.toMap(), test.Input)
 		}
 
 		// Compare params
