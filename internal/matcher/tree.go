@@ -120,14 +120,14 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 			var pval string
 			if pn.re == nil { // normal parameter
-				var chars byte
+				var char byte
 				if pn.endinglabel > 0 {
-					chars = pn.endinglabel
+					char = pn.endinglabel
 				} else {
-					chars = tree.MainSeparators()[0]
+					char = tree.MainSeparators()[0]
 				}
 
-				p = stringsIndex(search, chars)
+				p = stringsIndex(search, char)
 				if p < 0 {
 					p = len(search)
 				}
