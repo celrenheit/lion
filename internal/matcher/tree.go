@@ -118,17 +118,20 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			pn := n.paramChild
 			p := -1
 
-			chars := tree.MainSeparators()
-			if isByteInString(pn.endinglabel, tree.OptionalSeparators()) {
-				chars += tree.OptionalSeparators()
-			}
-			p = stringsIndexAny(search, chars)
-			if p < 0 {
-				p = len(search)
-			}
-
 			var pval string
 			if pn.re == nil { // normal parameter
+				var chars byte
+				if pn.endinglabel > 0 {
+					chars = pn.endinglabel
+				} else {
+					chars = tree.MainSeparators()[0]
+				}
+
+				p = stringsIndex(search, chars)
+				if p < 0 {
+					p = len(search)
+				}
+
 				pval = tree.cfg.ParamTransformer.Transform(search[:p])
 			} else { // regex
 				pval = pn.re.FindString(tree.cfg.ParamTransformer.Transform(search))
