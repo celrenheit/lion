@@ -62,4 +62,22 @@ func TestGetRoutesSubrouter(t *testing.T) {
 	if got != 3 {
 		t.Errorf("Number of routes should be 3 but got %d: %v", got, api.Routes())
 	}
+
+	lv2 := New()
+	lv2.Get("/users2", fakeHandler())
+	lv2.Get("/posts2", fakeHandler())
+	lv2.Get("/sessions2", fakeHandler())
+
+	l.Mount("/v2", lv2)
+
+	got = len(l.Routes())
+	if got != 7 {
+		t.Errorf("Number of routes should be 7 but got %d: %v", got, l.Routes())
+	}
+
+	lv2.Get("/categories", fakeHandler())
+	got = len(l.Routes())
+	if got != 8 {
+		t.Errorf("Number of routes should be 8 but got %d: %v", got, l.Routes())
+	}
 }

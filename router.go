@@ -25,8 +25,6 @@ var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTION
 
 // Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
-	router *Router
-
 	middlewares Middlewares
 
 	handler http.Handler // TODO: create a handler
@@ -44,18 +42,19 @@ type Router struct {
 	host   string
 	hostrm *hostMatcher
 
+	parent     *Router
 	subrouters []*Router
 }
 
 // New creates a new router instance
 func New(mws ...Middleware) *Router {
 	r := &Router{
+		parent:           nil,
 		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
 		pool:             newCtxPool(),
 	}
-	r.router = r
 	r.Use(mws...)
 	return r
 }
@@ -66,7 +65,7 @@ func New(mws ...Middleware) *Router {
 // It has it's own middlewares.
 func (r *Router) Subrouter(mws ...Middleware) *Router {
 	nr := &Router{
-		router:           r,
+		parent:           r,
 		hostrm:           r.hostrm,
 		pattern:          r.pattern,
 		middlewares:      Middlewares{},
@@ -246,6 +245,13 @@ func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, n
 	}
 }
 
+func (r *Router) root() *Router {
+	if r.parent == nil {
+		return r
+	}
+	return r.parent.root()
+}
+
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
 func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 	var p string
@@ -257,7 +263,7 @@ func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 
 	built := r.buildMiddlewares(handler)
 
-	rm := r.router.hostrm.Register(r.host)
+	rm := r.root().hostrm.Register(r.host)
 	rt := rm.Register(method, p, built)
 
 	// If this route does not exist in this Router instance then add it
@@ -282,14 +288,26 @@ func (r *Router) findRoute(rt *route) (*route, bool) {
 
 // Mount mounts a subrouter at the provided pattern
 func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
-	host := r.host
-	for _, route := range router.routes {
-		r.Host(route.Host())
-		for _, method := range route.Methods() {
-			r.Handle(method, path.Join(pattern, route.Pattern()), route.Handler(method))
-		}
-	}
+	router.parent = r
+	r.subrouters = append(r.subrouters, router)
 
+	var p string
+	if pattern == "/" {
+		p = r.pattern
+	} else {
+		p = r.pattern + pattern
+	}
+	router.pattern = p
+
+	host := r.host
+	for i, route := range router.routes {
+		router.Host(route.Host())
+		for _, method := range route.Methods() {
+			router.Handle(method, route.Pattern(), route.Handler(method))
+		}
+
+		router.routes = append(router.routes[:i], router.routes[i+1:]...)
+	}
 	// Restore previous host
 	r.host = host
 }
@@ -297,13 +315,13 @@ func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
 func (r *Router) buildMiddlewares(handler http.Handler) http.Handler {
 	handler = r.middlewares.BuildHandler(handler)
 	if !r.isRoot() {
-		handler = r.router.buildMiddlewares(handler)
+		handler = r.parent.buildMiddlewares(handler)
 	}
 	return handler
 }
 
 func (r *Router) isRoot() bool {
-	return r.router == r
+	return r.parent == nil
 }
 
 // HandleFunc wraps a HandlerFunc and pass it to Handle method
@@ -319,7 +337,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx.ResponseWriter = w
 	ctx.req = req
 
-	if h := r.router.hostrm.Match(ctx, req); h != nil {
+	if h := r.root().hostrm.Match(ctx, req); h != nil {
 		// We set the context only if there is a match
 		req = setParamContext(req, ctx)
 
@@ -334,8 +352,8 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // NotFound calls NotFoundHandler() if it is set. Otherwise, it calls net/http.NotFound
 func (r *Router) notFound(w http.ResponseWriter, req *http.Request) {
-	if r.router.notFoundHandler != nil {
-		r.router.notFoundHandler.ServeHTTP(w, req)
+	if r.root().notFoundHandler != nil {
+		r.root().notFoundHandler.ServeHTTP(w, req)
 	} else {
 		http.NotFound(w, req)
 	}
@@ -430,7 +448,7 @@ func (r *Router) UseNamed(name string) {
 	if r.hasNamed(name) { // Find if it this is registered in the current router
 		r.Use(r.namedMiddlewares[name]...)
 	} else if !r.isRoot() { // Otherwise, look for it in parent router.
-		r.router.UseNamed(name)
+		r.parent.UseNamed(name)
 	} else { // not found
 		panic("Unknow named middlewares: " + name)
 	}
