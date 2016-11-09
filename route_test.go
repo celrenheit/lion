@@ -44,3 +44,22 @@ func TestRouteGeneratePath(t *testing.T) {
 		}
 	}
 }
+
+func TestGetRoutesSubrouter(t *testing.T) {
+	l := New()
+	l.Get("/hello", fakeHandler())
+	api := l.Group("/api")
+	api.Get("/users", fakeHandler())
+	api.Get("/posts", fakeHandler())
+	api.Get("/sessions", fakeHandler())
+
+	got := len(l.Routes())
+	if got != 4 {
+		t.Errorf("Number of routes should be 4 but got %d: %v", got, l.Routes())
+	}
+
+	got = len(api.Routes())
+	if got != 3 {
+		t.Errorf("Number of routes should be 3 but got %d: %v", got, api.Routes())
+	}
+}

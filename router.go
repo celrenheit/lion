@@ -43,6 +43,8 @@ type Router struct {
 
 	host   string
 	hostrm *hostMatcher
+
+	subrouters []*Router
 }
 
 // New creates a new router instance
@@ -72,8 +74,10 @@ func (r *Router) Subrouter(mws ...Middleware) *Router {
 		host:             r.host,
 		pool:             newCtxPool(),
 		routes:           []*route{},
+		subrouters:       []*Router{},
 	}
 	nr.Use(mws...)
+	r.subrouters = append(r.subrouters, nr)
 	return nr
 }
 
@@ -457,4 +461,17 @@ func (r *Router) Route(name string) Route {
 	}
 
 	return nil
+}
+
+func (r *Router) Routes() Routes {
+	routes := make(Routes, len(r.routes))
+	for i := 0; i < len(r.routes); i++ {
+		routes[i] = r.routes[i]
+	}
+
+	for _, sr := range r.subrouters {
+		routes = append(routes, sr.Routes()...)
+	}
+
+	return routes
 }

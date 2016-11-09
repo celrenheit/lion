@@ -2,6 +2,7 @@ package lion
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/celrenheit/lion/internal/matcher"
 )
@@ -11,6 +12,16 @@ import (
 // The handler will not be built with middlewares.
 // If you want to add middleware you should add them by yourself.
 // WithMethod(method string, handler http.Handler) Route
+
+type Routes []Route
+
+func (rs Routes) String() string {
+	sa := make([]string, 0, len(rs))
+	for _, r := range rs {
+		sa = append(sa, r.Pattern())
+	}
+	return strings.Join(sa, ", ")
+}
 
 type Route interface {
 	WithName(name string) Route
