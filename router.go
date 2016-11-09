@@ -25,25 +25,19 @@ var allowedHTTPMethods = [...]string{GET, HEAD, POST, PUT, DELETE, TRACE, OPTION
 
 // Router is the main component of Lion. It is responsible for registering handlers and middlewares
 type Router struct {
-	middlewares Middlewares
-
-	handler http.Handler // TODO: create a handler
-
-	pattern string
-
-	notFoundHandler http.Handler
-
-	routes []*route // Used for Mount()
-
-	pool sync.Pool
-
+	pattern          string
+	middlewares      Middlewares
 	namedMiddlewares map[string]Middlewares
+
+	parent     *Router
+	subrouters []*Router
+	routes     []*route
 
 	host   string
 	hostrm *hostMatcher
 
-	parent     *Router
-	subrouters []*Router
+	notFoundHandler http.Handler
+	pool            sync.Pool
 }
 
 // New creates a new router instance
