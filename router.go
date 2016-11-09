@@ -93,6 +93,77 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 	return nr
 }
 
+// Handle is the underling method responsible for registering a handler for a specific method and pattern.
+func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
+	var p string
+	if !r.isRoot() && pattern == "/" && r.pattern != "" {
+		p = r.pattern
+	} else {
+		p = r.pattern + pattern
+	}
+
+	built := r.buildMiddlewares(handler)
+
+	rm := r.root().hostrm.Register(r.host)
+	rt := rm.Register(method, p, built)
+
+	// If this route does not exist in this Router instance then add it
+	if _, ok := r.findRoute(rt); !ok {
+		rt.pattern = p
+		rt.host = r.host
+		rt.pathMatcher = rm
+		r.routes = append(r.routes, rt)
+	}
+	return rt
+}
+
+// ServeHTTP finds the handler associated with the request's path.
+// If it is not found it calls the NotFound handler
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	ctx := r.pool.Get().(*ctx)
+	ctx.parent = req.Context()
+	ctx.ResponseWriter = w
+	ctx.req = req
+
+	if h := r.root().hostrm.Match(ctx, req); h != nil {
+		// We set the context only if there is a match
+		req = setParamContext(req, ctx)
+
+		h.ServeHTTP(w, req)
+	} else {
+		r.notFound(w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
+	}
+
+	ctx.Reset()
+	r.pool.Put(ctx)
+}
+
+// Mount mounts a subrouter at the provided pattern
+func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
+	router.parent = r
+	r.subrouters = append(r.subrouters, router)
+
+	var p string
+	if pattern == "/" {
+		p = r.pattern
+	} else {
+		p = r.pattern + pattern
+	}
+	router.pattern = p
+
+	host := r.host
+	for i, route := range router.routes {
+		router.Host(route.Host())
+		for _, method := range route.Methods() {
+			router.Handle(method, route.Pattern(), route.Handler(method))
+		}
+
+		router.routes = append(router.routes[:i], router.routes[i+1:]...)
+	}
+	// Restore previous host
+	r.host = host
+}
+
 func newCtxPool() sync.Pool {
 	return sync.Pool{
 		New: func() interface{} {
@@ -252,30 +323,6 @@ func (r *Router) root() *Router {
 	return r.parent.root()
 }
 
-// Handle is the underling method responsible for registering a handler for a specific method and pattern.
-func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
-	var p string
-	if !r.isRoot() && pattern == "/" && r.pattern != "" {
-		p = r.pattern
-	} else {
-		p = r.pattern + pattern
-	}
-
-	built := r.buildMiddlewares(handler)
-
-	rm := r.root().hostrm.Register(r.host)
-	rt := rm.Register(method, p, built)
-
-	// If this route does not exist in this Router instance then add it
-	if _, ok := r.findRoute(rt); !ok {
-		rt.pattern = p
-		rt.host = r.host
-		rt.pathMatcher = rm
-		r.routes = append(r.routes, rt)
-	}
-	return rt
-}
-
 func (r *Router) findRoute(rt *route) (*route, bool) {
 	for _, route := range r.routes {
 		if route == rt {
@@ -284,32 +331,6 @@ func (r *Router) findRoute(rt *route) (*route, bool) {
 	}
 
 	return nil, false
-}
-
-// Mount mounts a subrouter at the provided pattern
-func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
-	router.parent = r
-	r.subrouters = append(r.subrouters, router)
-
-	var p string
-	if pattern == "/" {
-		p = r.pattern
-	} else {
-		p = r.pattern + pattern
-	}
-	router.pattern = p
-
-	host := r.host
-	for i, route := range router.routes {
-		router.Host(route.Host())
-		for _, method := range route.Methods() {
-			router.Handle(method, route.Pattern(), route.Handler(method))
-		}
-
-		router.routes = append(router.routes[:i], router.routes[i+1:]...)
-	}
-	// Restore previous host
-	r.host = host
 }
 
 func (r *Router) buildMiddlewares(handler http.Handler) http.Handler {
@@ -327,27 +348,6 @@ func (r *Router) isRoot() bool {
 // HandleFunc wraps a HandlerFunc and pass it to Handle method
 func (r *Router) HandleFunc(method, pattern string, fn http.HandlerFunc) Route {
 	return r.Handle(method, pattern, http.HandlerFunc(fn))
-}
-
-// ServeHTTP finds the handler associated with the request's path.
-// If it is not found it calls the NotFound handler
-func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := r.pool.Get().(*ctx)
-	ctx.parent = req.Context()
-	ctx.ResponseWriter = w
-	ctx.req = req
-
-	if h := r.root().hostrm.Match(ctx, req); h != nil {
-		// We set the context only if there is a match
-		req = setParamContext(req, ctx)
-
-		h.ServeHTTP(w, req)
-	} else {
-		r.notFound(w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
-	}
-
-	ctx.Reset()
-	r.pool.Put(ctx)
 }
 
 // NotFound calls NotFoundHandler() if it is set. Otherwise, it calls net/http.NotFound
