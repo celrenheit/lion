@@ -1,11 +1,14 @@
 package lion
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 // HTTP methods constants
@@ -391,6 +394,11 @@ func (r *Router) ServeFile(base, path string) {
 	r.Get(base, handler)
 	r.Head(base, handler)
 }
+
+var (
+	lionColor  = color.New(color.Italic, color.FgHiGreen).SprintFunc()
+	lionLogger = log.New(os.Stdout, lionColor("[lion]")+" ", log.Ldate|log.Ltime)
+)
 
 // Run calls http.ListenAndServe for the current router.
 // If no addresses are specified as arguments, it will use the PORT environnement variable if it is defined. Otherwise, it will listen on port 3000 of the localmachine

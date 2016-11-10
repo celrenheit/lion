@@ -1,4 +1,4 @@
-package lion
+package middleware
 
 import (
 	"log"
@@ -6,29 +6,33 @@ import (
 	"os"
 	"time"
 
-	"github.com/celrenheit/lion/middleware"
+	"github.com/celrenheit/lion"
 	"github.com/fatih/color"
 )
 
 var lionColor = color.New(color.Italic, color.FgHiGreen).SprintFunc()
 var lionLogger = log.New(os.Stdout, lionColor("[lion]")+" ", log.Ldate|log.Ltime)
 
-// Classic creates a new router instance with default middlewares: Recovery, RealIP, Logger and Static.
+func Basic() lion.Middlewares {
+	return lion.Middlewares{NewRecovery(), NewRealIP()}
+}
+
+// Classic creates a new router instance with default middlewares: Recovery, RealIP, Logger.
 // The static middleware instance is initiated with a directory named "public" located relatively to the current working directory.
-func Classic() *Router {
-	return New(NewRecovery(), RealIP(), NewLogger(), NewStatic(http.Dir("public")))
+func Classic() lion.Middlewares {
+	return lion.Middlewares{NewRecovery(), NewRealIP(), NewLogger()}
 }
 
 // NewLogger creates a new Logger
-func NewLogger() Middleware {
-	return &middleware.Logger{
+func NewLogger() lion.Middleware {
+	return &Logger{
 		Logger: lionLogger,
 	}
 }
 
 // NewRecovery creates a new Recovery instance
-func NewRecovery() Middleware {
-	return &middleware.Recovery{
+func NewRecovery() lion.Middleware {
+	return &Recovery{
 		Logger:     lionLogger,
 		PrintStack: false,
 		StackAll:   false,
@@ -37,8 +41,8 @@ func NewRecovery() Middleware {
 }
 
 // NewStatic returns a new instance of Static
-func NewStatic(directory http.FileSystem) Middleware {
-	return &middleware.Static{
+func NewStatic(directory http.FileSystem) lion.Middleware {
+	return &Static{
 		Dir:       directory,
 		Prefix:    "",
 		IndexFile: "index.html",
@@ -47,10 +51,10 @@ func NewStatic(directory http.FileSystem) Middleware {
 
 // NoCache middleware sets headers to disable browser caching.
 // Inspired by https://github.com/mytrile/nocache
-func NoCache() Middleware {
+func NewNoCache() lion.Middleware {
 	var epoch = time.Unix(0, 0).Format(time.RFC1123)
 
-	return middleware.NoCache{
+	return NoCache{
 		ResponseHeaders: map[string]string{
 			"Expires":         epoch,
 			"Cache-Control":   "no-cache, private, must-revalidate, max-age=0",
@@ -68,6 +72,6 @@ func NoCache() Middleware {
 	}
 }
 
-func RealIP() Middleware {
-	return middleware.RealIP{}
+func NewRealIP() lion.Middleware {
+	return RealIP{}
 }
