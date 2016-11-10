@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
+	"github.com/celrenheit/lion/middleware"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +18,7 @@ func hello(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	l := lion.Classic()
+	l := lion.New(middleware.Classic())
 	l.GetFunc("/", home)
 	l.GetFunc("/hello/:name", hello)
 	l.Run()

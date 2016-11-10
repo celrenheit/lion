@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
+	"github.com/celrenheit/lion/middleware"
 )
 
 func main() {
-	l := lion.Classic()
+	l := lion.New(middleware.Classic())
 	api := l.Group("/api")
 	api.Module(products{})
 	l.Run()

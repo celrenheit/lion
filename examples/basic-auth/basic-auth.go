@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/celrenheit/lion"
+	"github.com/celrenheit/lion/middleware"
 )
 
 const basicAuthPrefix = "Basic "
@@ -50,7 +51,7 @@ func protectedHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	l := lion.Classic()
+	l := lion.New(middleware.Classic())
 	l.GetFunc("/", home)
 
 	g := l.Group("/protected")

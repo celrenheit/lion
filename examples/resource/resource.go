@@ -5,16 +5,17 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
+	"github.com/celrenheit/lion/middleware"
 )
 
 type todoList struct{}
 
 func (t todoList) Uses() lion.Middlewares {
-	return lion.Middlewares{lion.NewLogger()}
+	return lion.Middlewares{middleware.NewLogger()}
 }
 
 func (t todoList) GetMiddlewares() lion.Middlewares {
-	return lion.Middlewares{lion.NewRecovery()}
+	return lion.Middlewares{middleware.NewRecovery()}
 }
 
 func (t todoList) Get(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
+	"github.com/celrenheit/lion/middleware"
 )
 
 // Open your web browser at http://localhost:3000/api/v1/todos
@@ -37,7 +38,7 @@ func (t v1) Routes(r *lion.Router) {
 type todoList struct{}
 
 func (t todoList) Uses() lion.Middlewares {
-	return lion.Middlewares{lion.NewLogger()}
+	return lion.Middlewares{middleware.NewLogger()}
 }
 
 func (t todoList) Get(w http.ResponseWriter, r *http.Request) {
