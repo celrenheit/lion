@@ -461,18 +461,7 @@ func validatePattern(pattern string) {
 
 // Route get the Route associated with the name specified.
 func (r *Router) Route(name string) Route {
-	// Since all routes have their name empty by default,
-	// we cannot return the first route with an empty name
-	if name == "" {
-		return nil
-	}
-	for _, route := range r.routes {
-		if route.Name() == name {
-			return route
-		}
-	}
-
-	return nil
+	return r.Routes().ByName(name)
 }
 
 func (r *Router) Routes() Routes {

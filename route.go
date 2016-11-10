@@ -23,6 +23,34 @@ func (rs Routes) String() string {
 	return strings.Join(sa, ", ")
 }
 
+func (rs Routes) ByName(name string) Route {
+	// Since all routes have their name empty by default,
+	// we cannot return the first route with an empty name
+	if name == "" {
+		return nil
+	}
+	for _, route := range rs {
+		if route.Name() == name {
+			return route
+		}
+	}
+
+	return nil
+}
+
+func (rs Routes) ByPattern(pattern string) Route {
+	if pattern == "" {
+		return nil
+	}
+	for _, route := range rs {
+		if route.Pattern() == pattern {
+			return route
+		}
+	}
+
+	return nil
+}
+
 type Route interface {
 	WithName(name string) Route
 
