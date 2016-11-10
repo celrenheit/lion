@@ -37,6 +37,7 @@ It makes a shallow copy of the request.
   - [Custom Middlewares](#custom-middlewares)
     - [Custom Logger example](#custom-logger-example)
 - [Benchmarks](#benchmarks)
+- [Contributing](#contributing)
 - [License](#license)
 - [Todo](#todo)
 - [Credits](#credits)
@@ -500,6 +501,17 @@ l.Run()
 ## Benchmarks
 
 TODO: Update this when v2 is released.
+
+## Contributing
+
+Want to contribute to Lion ? Awesome! Feel free to submit an issue or a pull request.
+
+Here are some ways you can help:
+* Report bugs
+* Share a middleware or a module
+* Improve code/documentation
+* Propose new features
+* and more...
 
 ## License
 
