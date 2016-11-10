@@ -11,4 +11,4 @@ install:
   - bash scripts/gogetcookie.sh
   - go get -t -v .
 script:
-  - go test -v .
+  - go test -v $(go list ./... | grep -v vendor | grep -v examples)
