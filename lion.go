@@ -67,3 +67,7 @@ func (middlewares Middlewares) BuildHandler(handler http.Handler) http.Handler {
 	}
 	return handler
 }
+
+func (mws Middlewares) ServeNext(next http.Handler) http.Handler {
+	return mws.BuildHandler(next)
+}
