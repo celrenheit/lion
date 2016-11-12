@@ -19,10 +19,9 @@ func (m *MaxAge) ServeNext(next http.Handler) http.Handler {
 	}
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if !m.Filter(r) {
-			return
+		if m.Filter(r) {
+			w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", int(m.Duration.Seconds())))
 		}
-		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", int(m.Duration.Seconds())))
 		next.ServeHTTP(w, r)
 	}
 
