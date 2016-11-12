@@ -113,7 +113,7 @@ func (ra *responseAsserter) ExpectBodyBytes(expected []byte) ResponseAsserter {
 
 func (ra *responseAsserter) ExpectBodyContains(expected string) ResponseAsserter {
 	actual := ra.w.Body.String()
-	if strings.Contains(actual, expected) {
+	if !strings.Contains(actual, expected) {
 		ra.Error("body", "contain", expected, actual)
 	}
 	return ra
