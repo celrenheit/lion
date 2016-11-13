@@ -50,6 +50,7 @@ type Context interface {
 	JSON(data interface{}) error
 	XML(data interface{}) error
 	String(format string, a ...interface{}) error
+	Error(err error) error
 	File(path string) error
 	Attachment(path, filename string) error
 	Redirect(urlStr string) error
@@ -209,6 +210,14 @@ func (c *ctx) String(format string, a ...interface{}) error {
 	return c.raw([]byte(str), contentTypeTextPlain)
 }
 
+func (c *ctx) Error(err error) error {
+	if herr, ok := err.(HTTPError); ok {
+		return c.WithStatus(herr.Status()).
+			String(err.Error())
+	}
+	return c.String(err.Error())
+}
+
 func (c *ctx) XML(data interface{}) error {
 	b, err := xml.Marshal(data)
 	if err != nil {
@@ -298,4 +307,31 @@ func setParamContext(req *http.Request, c *ctx) *http.Request {
 type parameter struct {
 	key string
 	val string
+}
+
+type HTTPError interface {
+	error
+	Status() int
+}
+
+var (
+	// 4xx
+	ErrorBadRequest       HTTPError = httpError{http.StatusBadRequest}
+	ErrorUnauthorized     HTTPError = httpError{http.StatusUnauthorized}
+	ErrorForbidden        HTTPError = httpError{http.StatusForbidden}
+	ErrorNotFound         HTTPError = httpError{http.StatusNotFound}
+	ErrorMethodNotAllowed HTTPError = httpError{http.StatusMethodNotAllowed}
+
+	// 5xx
+	ErrorInternalServer HTTPError = httpError{http.StatusInternalServerError}
+)
+
+type httpError struct{ code int }
+
+func (e httpError) Error() string {
+	return http.StatusText(e.code)
+}
+
+func (e httpError) Status() int {
+	return e.code
 }
