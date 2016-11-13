@@ -18,5 +18,5 @@ func Basic() lion.Middlewares {
 // Classic creates a new router instance with default middlewares: Recovery, RealIP, Logger.
 // The static middleware instance is initiated with a directory named "public" located relatively to the current working directory.
 func Classic() lion.Middlewares {
-	return lion.Middlewares{NewRecovery(), NewRealIP(), NewLogger()}
+	return lion.Middlewares{Basic(), NewLogger()}
 }
