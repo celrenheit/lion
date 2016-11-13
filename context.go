@@ -263,6 +263,8 @@ func (c *ctx) Reset() {
 	c.parent = nil
 	c.req = nil
 	c.ResponseWriter = nil
+	c.code = 0
+	c.statusWritten = false
 }
 
 func (c *ctx) Remove(key string) {
