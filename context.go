@@ -205,11 +205,8 @@ func (c *ctx) JSON(data interface{}) error {
 }
 
 func (c *ctx) String(format string, a ...interface{}) error {
-	_, err := fmt.Fprintf(c, format, a...)
-	if err != nil {
-		return err
-	}
-	return nil
+	str := fmt.Sprintf(format, a...)
+	return c.raw([]byte(str), contentTypeTextPlain)
 }
 
 func (c *ctx) XML(data interface{}) error {
