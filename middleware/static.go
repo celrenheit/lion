@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/celrenheit/lion"
 )
 
 // Static is a middleware handler that serves static files in the given directory/filesystem.
@@ -15,6 +17,15 @@ type Static struct {
 	Prefix string
 	// IndexFile defines which file to serve as index if it exists.
 	IndexFile string
+}
+
+// NewStatic returns a new instance of Static
+func NewStatic(directory http.FileSystem) lion.Middleware {
+	return &Static{
+		Dir:       directory,
+		Prefix:    "",
+		IndexFile: "index.html",
+	}
 }
 
 // ServeNext tries to find a file in the directory

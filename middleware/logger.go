@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/celrenheit/lion"
 	"github.com/fatih/color"
 )
 
@@ -20,6 +21,13 @@ var hiBlue = color.New(color.FgHiBlue).SprintFunc()
 // Logger is a middlewares that logs incoming http requests
 type Logger struct {
 	*log.Logger
+}
+
+// NewLogger creates a new Logger
+func NewLogger() lion.Middleware {
+	return &Logger{
+		Logger: lionLogger,
+	}
 }
 
 // ServeNext implements the Middleware interface for Logger.

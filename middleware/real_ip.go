@@ -3,6 +3,8 @@ package middleware
 import (
 	"net/http"
 	"strings"
+
+	"github.com/celrenheit/lion"
 )
 
 var xForwardedFor = http.CanonicalHeaderKey("X-Forwarded-For")
@@ -25,6 +27,10 @@ var xRealIP = http.CanonicalHeaderKey("X-Real-IP")
 // how you're using RemoteAddr, vulnerable to an attack of some sort).
 // Taken from https://github.com/zenazn/goji/blob/master/web/middleware/realip.go
 type RealIP struct{}
+
+func NewRealIP() lion.Middleware {
+	return RealIP{}
+}
 
 func (RealIP) ServeNext(next http.Handler) http.Handler {
 	hfn := func(w http.ResponseWriter, r *http.Request) {

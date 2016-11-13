@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"runtime"
+
+	"github.com/celrenheit/lion"
 )
 
 // Recovery is a middleware that recovers from panics
@@ -14,6 +16,16 @@ type Recovery struct {
 	PrintStack bool
 	StackAll   bool
 	StackSize  int
+}
+
+// NewRecovery creates a new Recovery instance
+func NewRecovery() lion.Middleware {
+	return &Recovery{
+		Logger:     lionLogger,
+		PrintStack: false,
+		StackAll:   false,
+		StackSize:  1024 * 8,
+	}
 }
 
 // ServeNext is the method responsible for recovering from a panic
