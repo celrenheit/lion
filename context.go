@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/celrenheit/lion/internal/matcher"
 )
 
 // Context key to store *ctx
@@ -68,6 +70,9 @@ type ctx struct {
 
 	code          int
 	statusWritten bool
+
+	tags          matcher.Tags
+	searchHistory []string
 }
 
 // newContext creates a new context instance
@@ -85,6 +90,8 @@ func newContextWithResReq(c context.Context, w http.ResponseWriter, r *http.Requ
 		parent:         c,
 		ResponseWriter: w,
 		req:            r,
+		tags:           make([]string, 1),
+		searchHistory:  make([]string, 0, 20), // Preallocate enough capacity. TODO: Make it depend on max nodes
 	}
 }
 
@@ -136,6 +143,10 @@ func (c *ctx) Clone() Context {
 	nc.req = *nr
 
 	return nc
+}
+
+func (c *ctx) SearchHistory() []string {
+	return c.searchHistory
 }
 
 ///////////// REQUEST UTILS ////////////////
@@ -265,6 +276,7 @@ func (c *ctx) Reset() {
 	c.ResponseWriter = nil
 	c.code = 0
 	c.statusWritten = false
+	c.searchHistory = c.searchHistory[:0]
 }
 
 func (c *ctx) Remove(key string) {

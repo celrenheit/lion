@@ -96,10 +96,7 @@ func (hs *hostStore) Get(tags matcher.Tags) interface{} {
 	return hs.rm
 }
 
-type hostParamTransformer struct {
-	slice     []string
-	portSlice []string
-}
+type hostParamTransformer struct{}
 
 func newHostParamTransformer() *hostParamTransformer {
 	return &hostParamTransformer{}
@@ -128,14 +125,14 @@ func (hpt *hostParamTransformer) Transform(input string) string {
 // Taken from Go's standard library
 // https://github.com/golang/go/blob/master/src/strings/strings.go#L237-L261
 func (hpt *hostParamTransformer) split(s, sep string) []string {
-	hpt.slice = hpt.slice[0:]
+	slice := []string{}
 	n := strings.Count(s, sep) + 1
 	c := sep[0]
 	start := 0
 
 	var a []string
-	if cap(hpt.slice) == n {
-		a = hpt.slice
+	if cap(slice) == n {
+		a = slice
 	} else {
 		a = make([]string, n)
 	}
@@ -150,8 +147,8 @@ func (hpt *hostParamTransformer) split(s, sep string) []string {
 		}
 	}
 	a[na] = s[start:]
-	hpt.slice = a[0 : na+1]
-	return hpt.slice
+	slice = a[0 : na+1]
+	return slice
 }
 
 var hostReverser = newHostParamTransformer()

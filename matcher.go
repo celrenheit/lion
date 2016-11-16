@@ -23,7 +23,6 @@ var _ registerMatcher = (*pathMatcher)(nil)
 
 type pathMatcher struct {
 	matcher matcher.Matcher
-	tags    matcher.Tags
 }
 
 func newPathMatcher() *pathMatcher {
@@ -38,7 +37,6 @@ func newPathMatcher() *pathMatcher {
 
 	r := &pathMatcher{
 		matcher: matcher.Custom(cfg),
-		tags:    matcher.Tags{""},
 	}
 	return r
 }
@@ -53,9 +51,9 @@ func (d *pathMatcher) Register(method, pattern string, handler http.Handler) *ro
 func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 	p := cleanPath(r.URL.Path)
 
-	d.tags[0] = r.Method
+	c.tags[0] = r.Method
 
-	h, err := d.matcher.GetWithContext(c, p, d.tags)
+	h, err := d.matcher.GetWithContext(c, p, c.tags)
 	if err == matcher.ErrNotFound {
 		return c, nil
 	}
@@ -96,8 +94,8 @@ func (d *pathMatcher) automaticOptionsHandler(c *ctx, path string) http.Handler 
 			continue
 		}
 
-		d.tags[0] = method
-		h, _ := d.matcher.GetWithContext(c, path, d.tags)
+		c.tags[0] = method
+		h, _ := d.matcher.GetWithContext(c, path, c.tags)
 		if h != nil {
 			allowed = append(allowed, method)
 		}

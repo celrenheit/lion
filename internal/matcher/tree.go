@@ -89,7 +89,7 @@ func (t *tree) isLeaf(n *node, tags Tags) bool {
 func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 	n := tree.root
 	search := path
-
+	searchHistory := c.SearchHistory()
 	for {
 
 		if search == "" && n.GetSetter != nil {
@@ -107,7 +107,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 			n = nn
 
-			tree.searchHistory = append(tree.searchHistory, search)
+			searchHistory = append(searchHistory, search)
 			search = search[len(nn.pattern):]
 			continue
 		}
@@ -139,7 +139,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			}
 
 			c.AddParam(pn.pname, pval)
-			tree.searchHistory = append(tree.searchHistory, search)
+			searchHistory = append(searchHistory, search)
 
 			n = n.paramChild
 			search = search[p:]
@@ -154,7 +154,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			pval := tree.cfg.ParamTransformer.Transform(search)
 			c.AddParam(n.pname, pval)
 
-			tree.searchHistory = append(tree.searchHistory, search)
+			searchHistory = append(searchHistory, search)
 			search = search[len(search):]
 			continue
 		}
@@ -167,13 +167,13 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 		// 		/hello/contact/nameddd
 		// it should go the second registered pattern (the one that has :param)
 		if search != "" && n.parent != nil && n.nodeType == static {
-			if n.parent.paramChild != nil && len(tree.searchHistory) > 0 {
+			if n.parent.paramChild != nil && len(searchHistory) > 0 {
 				// Going to parent
 				n = n.parent
 
 				// Rollback search
-				search = tree.searchHistory[len(tree.searchHistory)-1]
-				tree.searchHistory = tree.searchHistory[:len(tree.searchHistory)-1]
+				search = searchHistory[len(searchHistory)-1]
+				searchHistory = searchHistory[:len(searchHistory)-1]
 				goto PARAM
 			}
 		}
@@ -184,15 +184,15 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 		// If there was a previously registered param in the previous param node, we remove it.
 		if search != "" && n.parent != nil {
 			// Walk back up the tree to find if there is a wildcard node
-			for n.anyChild == nil && n.parent != nil && len(tree.searchHistory) > 0 {
+			for n.anyChild == nil && n.parent != nil && len(searchHistory) > 0 {
 				prevparam := n.pname
 
 				// Going to parent
 				n = n.parent
 
 				// Rollback search
-				search = tree.searchHistory[len(tree.searchHistory)-1]
-				tree.searchHistory = tree.searchHistory[:len(tree.searchHistory)-1]
+				search = searchHistory[len(searchHistory)-1]
+				searchHistory = searchHistory[:len(searchHistory)-1]
 
 				// Remove parameters added along the way
 				if prevparam != "" {
@@ -206,8 +206,6 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 		break
 	}
 
-	// Reset search history
-	tree.searchHistory = tree.searchHistory[:0]
 	return out
 }
 

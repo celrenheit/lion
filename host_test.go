@@ -163,3 +163,23 @@ func TestMountHost(t *testing.T) {
 	test.Get("http://host2.com/first").Do().ExpectStatus(http.StatusNotFound)
 	test.Get("http://host2.com/second").Do().ExpectStatus(http.StatusOK)
 }
+
+func TestRaceCondition(t *testing.T) {
+	mux := New()
+	mux.Host("host1.com")
+	mux.Get("/first", fakeHandler())
+
+	second := New()
+	second.Host("host2.com")
+	second.Get("/second", fakeHandler())
+
+	mux.Mount("/", second)
+
+	test := htest.New(t, mux)
+	N := 3
+	for i := 0; i < N; i++ {
+		go func() {
+			test.Get("http://host1.com/first").Do()
+		}()
+	}
+}

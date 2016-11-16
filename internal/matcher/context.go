@@ -12,6 +12,7 @@ type Context interface {
 	AddParam(key, value string)
 	Remove(key string)
 	Reset()
+	SearchHistory() []string
 }
 
 type ctx struct {
@@ -31,6 +32,10 @@ func NewContextWithParent(c context.Context) Context {
 	return &ctx{
 		parent: c,
 	}
+}
+
+func (c *ctx) SearchHistory() []string {
+	return []string{}
 }
 
 // Value returns the value for the passed key. If it is not found in the url params it returns parent's context Value
