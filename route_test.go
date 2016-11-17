@@ -31,6 +31,17 @@ func TestRouteGeneratePath(t *testing.T) {
 
 	for _, test := range tests {
 		path, err := l.Route(test.route_name).Path(test.params)
+
+		// Test with RoutePathBuilder
+		builder := l.Route(test.route_name).Build()
+		for k, v := range test.params {
+			builder.WithParam(k, v)
+		}
+
+		if builtpath, _ := builder.Path(); path != builtpath {
+			t.Errorf("RoutePathBuilder's path should be the name as Path")
+		}
+
 		if test.expectedErr && err == nil {
 			t.Errorf("Should have errored")
 		}

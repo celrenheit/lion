@@ -59,7 +59,13 @@ type Route interface {
 	Name() string
 	Pattern() string
 	Handler(method string) http.Handler
+
+	// Path building
 	Path(params map[string]string) (string, error)
+	Build() RoutePathBuilder
+	// Convenient alias for Build().WithParam()
+	// Calling this method will create a new RoutePathBuilder
+	WithParam(key, value string) RoutePathBuilder
 }
 
 type route struct {
@@ -205,4 +211,33 @@ func (gs *route) getHandler(method string) http.Handler {
 	default:
 		return nil
 	}
+}
+
+type RoutePathBuilder interface {
+	WithParam(key, value string) RoutePathBuilder
+	Path() (string, error)
+}
+
+type routePathBuilder struct {
+	route  *route
+	params map[string]string
+}
+
+func (r *route) Build() RoutePathBuilder {
+	return &routePathBuilder{
+		route:  r,
+		params: make(map[string]string),
+	}
+}
+func (r *route) WithParam(key, value string) RoutePathBuilder {
+	return r.Build().WithParam(key, value)
+}
+
+func (r *routePathBuilder) WithParam(key, value string) RoutePathBuilder {
+	r.params[key] = value
+	return r
+}
+
+func (r *routePathBuilder) Path() (string, error) {
+	return r.route.Path(r.params)
 }
