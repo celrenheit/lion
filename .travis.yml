@@ -5,10 +5,7 @@ go:
   - 1.7.2
   - 1.7.3
   - tip
-env:
-  - GO15VENDOREXPERIMENT=1
 install:
-  - bash scripts/gogetcookie.sh
   - go get -t -v .
 script:
   - go test -v $(go list ./... | grep -v vendor | grep -v examples)
