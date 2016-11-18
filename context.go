@@ -12,8 +12,10 @@ import (
 	"github.com/celrenheit/lion/internal/matcher"
 )
 
+type ctxKeyType int
+
 // Context key to store *ctx
-var ctxKey = &struct{}{}
+var ctxKey ctxKeyType = 0
 
 var (
 	ErrInvalidRedirectStatusCode = errors.New("Invalid redirect status code")
