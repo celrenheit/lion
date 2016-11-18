@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/celrenheit/htest"
 	"github.com/celrenheit/lion"
@@ -36,6 +38,37 @@ func TestJWT(t *testing.T) {
 		SetHeader("Authorization", "Bearer "+token).Do().
 		ExpectStatus(400).
 		ExpectBody(jwt.ErrSignatureInvalid.Error())
+
+	// Malformed token
+	r = newTestJWTRouter("HS256", "secret")
+	test = htest.New(t, r)
+
+	test.Get("/private").
+		SetHeader("Authorization", "Bearer test").Do().
+		ExpectStatus(400).
+		ExpectBody(errJWTTokenMalformed.Error())
+
+	// Expired token
+	r = newTestJWTRouter("HS256", "secret")
+	test = htest.New(t, r)
+
+	expiredToken := "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIiLCJpYXQiOm51bGwsImV4cCI6MTI4OTk5MTE3MSwiYXVkIjoiIiwic3ViIjoiIiwibmFtZSI6IkpvaG4gRG9lIn0.QyuKmJ3mt74i0gpzP861Eek53ksTZI4mvqojDGF8tnY"
+	test.Get("/private").
+		SetHeader("Authorization", "Bearer "+expiredToken).
+		Do().
+		ExpectStatus(400).
+		ExpectBody(errJWTTokenExpired.Error())
+
+	// Not valid yet token
+	r = newTestJWTRouter("HS256", "secret")
+	test = htest.New(t, r)
+
+	notvalidyetToken := generateToken("secret", 1*time.Minute, 2*time.Minute)
+	test.Get("/private").
+		SetHeader("Authorization", "Bearer "+notvalidyetToken).
+		Do().
+		ExpectStatus(400).
+		ExpectBody(errJWTTokenNotValidYet.Error())
 
 	// RS256
 	r = newTestJWTRouter("RS256", `
@@ -86,4 +119,21 @@ func BenchmarkJWT(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		r.ServeHTTP(w, req)
 	}
+}
+
+func generateToken(key string, exp time.Duration, nbf time.Duration) string {
+	t := jwt.New(jwt.SigningMethodHS256)
+	t.Header["typ"] = "JWT"
+	claims := jwt.MapClaims{}
+
+	claims["exp"] = time.Now().Add(exp).Unix()
+	claims["nbf"] = time.Now().Add(nbf).Unix()
+	claims["iat"] = time.Now().Unix()
+	t.Claims = claims
+
+	str, err := t.SignedString([]byte(key))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return str
 }
