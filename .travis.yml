@@ -12,3 +12,4 @@ install:
   - go get -t -v .
 script:
   - go test -v $(go list ./... | grep -v vendor | grep -v examples)
+  - ./examples/build_all.sh
