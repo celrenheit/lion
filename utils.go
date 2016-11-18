@@ -2,6 +2,7 @@ package lion
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 )
@@ -30,4 +31,12 @@ func reverseHostStdLib(pattern string) string {
 		reversed[i], reversed[j] = reversed[j], reversed[i]
 	}
 	return strings.Join(reversed, ".")
+}
+
+func wrap(ctxHandler func(Context)) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		c := C(r)
+		ctxHandler(c)
+	}
+	return http.HandlerFunc(fn)
 }

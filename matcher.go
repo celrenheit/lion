@@ -1,7 +1,6 @@
 package lion
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -60,9 +59,9 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 		} else {
 			p = p + "/"
 		}
-		return c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			C(r).
-				WithStatus(http.StatusMovedPermanently).
+
+		return c, wrap(func(c Context) {
+			c.WithStatus(http.StatusMovedPermanently).
 				Redirect(p)
 		})
 	}
@@ -80,9 +79,8 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 		}
 
 		// Method not allowed
-		return c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			fmt.Fprintf(w, http.StatusText(http.StatusMethodNotAllowed))
+		return c, wrap(func(c Context) {
+			c.Error(ErrorMethodNotAllowed)
 		})
 	}
 
