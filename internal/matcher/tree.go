@@ -39,18 +39,18 @@ func (t *tree) AllChars() string {
 	return t.allChars
 }
 
-func (t *tree) setValue(n *node, value interface{}, tags Tags) GetSetter {
+func (t *tree) setValue(n *node, value interface{}, tags Tags) Store {
 	if t.cfg.New != nil {
-		if n.GetSetter == nil {
-			n.GetSetter = t.cfg.New()
+		if n.store == nil {
+			n.store = t.cfg.New()
 		}
 	}
 
-	if n.GetSetter != nil {
-		n.GetSetter.Set(value, tags)
+	if n.store != nil {
+		n.store.Set(value, tags)
 	}
 
-	return n.GetSetter
+	return n.store
 }
 
 func newTree(cfg *Config) *tree {
@@ -75,11 +75,11 @@ func newTree(cfg *Config) *tree {
 }
 
 func (t *tree) getValue(n *node, tags Tags) interface{} {
-	if n.GetSetter == nil {
+	if n.store == nil {
 		return nil
 	}
 
-	return n.GetSetter.Get(tags)
+	return n.store.Get(tags)
 }
 
 func (t *tree) isLeaf(n *node, tags Tags) bool {
@@ -92,7 +92,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 	searchHistory := c.SearchHistory()
 	for {
 
-		if search == "" && n.GetSetter != nil {
+		if search == "" && n.store != nil {
 			out = n
 			break
 		}
@@ -173,7 +173,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 
 		if search == "" {
 			nn, ok := n.getStaticChild(tree.MainSeparators()[0])
-			if ok && nn.GetSetter != nil {
+			if ok && nn.store != nil {
 				err = ErrTSR
 				break
 			}
@@ -229,7 +229,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 	return out, err
 }
 
-func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) GetSetter {
+func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) Store {
 	splitted := tree.split(pattern)
 	pattern = strings.Replace(pattern, `\`, "", -1)
 
@@ -483,7 +483,7 @@ func (tree *tree) printTree(n *node, decalage int) (out string) {
 	if n.re != nil {
 		regexNode = "RE"
 	}
-	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p] %d %s\n", dec, n.pattern, n.GetSetter != nil, string(n.label), string(n.endinglabel), n.GetSetter, n.priority, regexNode)
+	out += fmt.Sprintf("%s-> %s %v ('%s' -> '%s') [%p] %d %s\n", dec, n.pattern, n.store != nil, string(n.label), string(n.endinglabel), n.store, n.priority, regexNode)
 
 	if len(n.staticChildren) > 0 {
 		out += dec + "\tStatic Nodes\n"

@@ -30,7 +30,7 @@ func newPathMatcher() *pathMatcher {
 		ParamChar:    ':',
 		WildcardChar: '*',
 		Separators:   "/.",
-		New: func() matcher.GetSetter {
+		New: func() matcher.Store {
 			return &route{}
 		},
 	}

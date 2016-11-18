@@ -20,7 +20,7 @@ type node struct {
 	pattern     string
 	label       byte
 	endinglabel byte
-	GetSetter   GetSetter
+	store       Store
 	priority    int
 
 	parent *node

@@ -23,7 +23,7 @@ func newHostMatcher() *hostMatcher {
 		ParamChar:    '$',
 		WildcardChar: '*',
 		Separators:   ".:",
-		New: func() matcher.GetSetter {
+		New: func() matcher.Store {
 			return &hostStore{
 				rm: newPathMatcher(),
 			}

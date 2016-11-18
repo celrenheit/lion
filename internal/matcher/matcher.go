@@ -12,13 +12,13 @@ var (
 )
 
 type Matcher interface {
-	Set(pattern string, values interface{}, tags Tags) GetSetter
+	Set(pattern string, values interface{}, tags Tags) Store
 	Get(pattern string, tags Tags) (Context, interface{}, error)
 	GetWithContext(c Context, pattern string, tags Tags) (interface{}, error)
 	Eval(pattern string, params map[string]string) (string, error)
 }
 
-type GetSetter interface {
+type Store interface {
 	Set(value interface{}, tags Tags)
 	Get(tags Tags) interface{}
 }
@@ -32,7 +32,7 @@ type Config struct {
 	WildcardChar     byte
 	Separators       string
 	ParamTransformer ParamTransformer
-	New              func() GetSetter
+	New              func() Store
 }
 
 type matcher struct {
@@ -58,7 +58,7 @@ func Custom(cfg *Config) Matcher {
 	}
 }
 
-func (m *matcher) Set(pattern string, values interface{}, tags Tags) GetSetter {
+func (m *matcher) Set(pattern string, values interface{}, tags Tags) Store {
 	value := m.tree.addRoute(m.tree.root, pattern, values, tags)
 	m.postvalidation(pattern)
 	return value
