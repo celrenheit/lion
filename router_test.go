@@ -597,6 +597,28 @@ func TestValidation(t *testing.T) {
 	}
 }
 
+func TestTrailingSlashRedirect(t *testing.T) {
+	router := New()
+	router.Get("/a", fakeHandler())
+	router.Get("/b/", fakeHandler())
+	router.Get("/noslash/:param", fakeHandler())
+	router.Get("/withslash/:param/", fakeHandler())
+	test := htest.New(t, router)
+
+	tests := map[string]string{
+		"/a/":              "/a",
+		"/b":               "/b/",
+		"/noslash/here/":   "/noslash/here",
+		"/withslash/here/": "/withslash/here",
+	}
+
+	for input, expectedRedirect := range tests {
+		test.Get(input).Do().
+			ExpectStatus(http.StatusMovedPermanently).
+			ExpectHeader("Location", expectedRedirect)
+	}
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {

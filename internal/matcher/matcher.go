@@ -8,6 +8,7 @@ import (
 var (
 	ErrNotFound       = errors.New("not found")
 	ErrTagsNotAllowed = errors.New("tags not allowed")
+	ErrTSR            = errors.New("TSR")
 )
 
 type Matcher interface {
@@ -70,7 +71,10 @@ func (m *matcher) Get(pattern string, tags Tags) (Context, interface{}, error) {
 }
 
 func (m *matcher) GetWithContext(c Context, pattern string, tags Tags) (interface{}, error) {
-	n := m.tree.findNode(c, pattern, tags)
+	n, err := m.tree.findNode(c, pattern, tags)
+	if err == ErrTSR {
+		return nil, ErrTSR
+	}
 	if n == nil {
 		return nil, ErrNotFound
 	}

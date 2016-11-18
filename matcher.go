@@ -54,6 +54,19 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 	c.tags[0] = r.Method
 
 	h, err := d.matcher.GetWithContext(c, p, c.tags)
+	if err == matcher.ErrTSR {
+		if p[len(p)-1] == '/' {
+			p = p[:len(p)-1]
+		} else {
+			p = p + "/"
+		}
+		return c, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			C(r).
+				WithStatus(http.StatusMovedPermanently).
+				Redirect(p)
+		})
+	}
+
 	if err == matcher.ErrNotFound {
 		return c, nil
 	}
@@ -62,7 +75,7 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 
 		// Automatic OPTIONS
 		if r.Method == OPTIONS {
-			hh := d.automaticOptionsHandler(c, r.URL.Path)
+			hh := d.automaticOptionsHandler(c, p)
 			return c, hh
 		}
 

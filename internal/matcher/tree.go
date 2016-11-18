@@ -86,7 +86,7 @@ func (t *tree) isLeaf(n *node, tags Tags) bool {
 	return t.getValue(n, tags) != nil
 }
 
-func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
+func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err error) {
 	n := tree.root
 	search := path
 	searchHistory := c.SearchHistory()
@@ -109,7 +109,14 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 			searchHistory = append(searchHistory, search)
 			search = search[len(nn.pattern):]
+			if search == "/" {
+				err = ErrTSR
+				break
+			}
 			continue
+		} else if ok && nn.endinglabel == tree.MainSeparators()[0] && len(search) < len(nn.pattern) && search == nn.pattern[:len(nn.pattern)-1] {
+			err = ErrTSR
+			break
 		}
 
 	PARAM:
@@ -143,6 +150,11 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 
 			n = n.paramChild
 			search = search[p:]
+
+			if search == tree.MainSeparators() {
+				err = ErrTSR
+				break
+			}
 			continue
 		}
 
@@ -157,6 +169,14 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 			searchHistory = append(searchHistory, search)
 			search = search[len(search):]
 			continue
+		}
+
+		if search == "" {
+			nn, ok := n.getStaticChild(tree.MainSeparators()[0])
+			if ok && nn.GetSetter != nil {
+				err = ErrTSR
+				break
+			}
 		}
 
 		// Case where the current path starts with and is longer than the found node's (nn) static path
@@ -206,7 +226,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node) {
 		break
 	}
 
-	return out
+	return out, err
 }
 
 func (tree *tree) addRoute(n *node, pattern string, values interface{}, tags Tags) GetSetter {
