@@ -11,10 +11,8 @@ import (
 )
 
 func TestStatic(t *testing.T) {
-
-	cwd, _ := os.Getwd()
 	// Temporary directory
-	dir, err := ioutil.TempDir(cwd, "test_static")
+	dir, err := ioutil.TempDir("", "test_static")
 	if err != nil {
 		t.Error(err)
 	}
