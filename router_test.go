@@ -610,11 +610,18 @@ func TestTrailingSlashRedirect(t *testing.T) {
 		"/b":               "/b/",
 		"/noslash/here/":   "/noslash/here",
 		"/withslash/here/": "/withslash/here",
+		"/withslash/":      "",
+		"/withslash":       "",
+		"/":                "",
 	}
 
 	for input, expectedRedirect := range tests {
+		code := http.StatusMovedPermanently
+		if expectedRedirect == "" {
+			code = 404
+		}
 		test.Get(input).Do().
-			ExpectStatus(http.StatusMovedPermanently).
+			ExpectStatus(code).
 			ExpectHeader("Location", expectedRedirect)
 	}
 }

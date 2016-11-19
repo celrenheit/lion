@@ -114,7 +114,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 				break
 			}
 			continue
-		} else if ok && nn.endinglabel == tree.MainSeparators()[0] && len(search) < len(nn.pattern) && search == nn.pattern[:len(nn.pattern)-1] {
+		} else if ok && nn.endinglabel == tree.MainSeparators()[0] && len(search) < len(nn.pattern) && search == nn.pattern[:len(nn.pattern)-1] && nn.store != nil {
 			err = ErrTSR
 			break
 		}
@@ -171,7 +171,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 			continue
 		}
 
-		if search == "" {
+		if search == "" && n.store != nil {
 			nn, ok := n.getStaticChild(tree.MainSeparators()[0])
 			if ok && nn.store != nil {
 				err = ErrTSR
