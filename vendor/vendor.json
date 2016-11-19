@@ -39,6 +39,12 @@
 			"revisionTime": "2015-12-11T00:06:21Z"
 		},
 		{
+			"checksumSHA1": "i8Yom1KrpDKwjlGH/gpJGAQmo68=",
+			"path": "github.com/nats-io/nuid",
+			"revision": "289cccf02c178dc782430d534e3c1f5b72af807f",
+			"revisionTime": "2016-09-27T04:49:45Z"
+		},
+		{
 			"checksumSHA1": "opkzPE4MDhLRhmkSJais/qYb2+M=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "3826714b1e47586d04a2d62ccf2e8d13eca82790",
