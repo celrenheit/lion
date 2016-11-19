@@ -241,6 +241,58 @@ func (r *Router) Patch(pattern string, handler http.Handler) Route {
 	return r.Handle("PATCH", pattern, handler)
 }
 
+// ANY registers the provided contextual Handler for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
+func (r *Router) ANY(pattern string, handler func(Context)) Route {
+	rt := r.Handle(allowedHTTPMethods[0], pattern, wrap(handler)).(*route)
+	rt.withMethods(r.middlewares.BuildHandler(wrap(handler)), allowedHTTPMethods[1:]...)
+	return rt
+}
+
+// GET registers an http GET method receiver with the provided contextual Handler
+func (r *Router) GET(pattern string, handler func(Context)) Route {
+	return r.Handle("GET", pattern, wrap(handler))
+}
+
+// HEAD registers an http HEAD method receiver with the provided contextual Handler
+func (r *Router) HEAD(pattern string, handler func(Context)) Route {
+	return r.Handle("HEAD", pattern, wrap(handler))
+}
+
+// POST registers an http POST method receiver with the provided contextual Handler
+func (r *Router) POST(pattern string, handler func(Context)) Route {
+	return r.Handle("POST", pattern, wrap(handler))
+}
+
+// PUT registers an http PUT method receiver with the provided contextual Handler
+func (r *Router) PUT(pattern string, handler func(Context)) Route {
+	return r.Handle("PUT", pattern, wrap(handler))
+}
+
+// DELETE registers an http DELETE method receiver with the provided contextual Handler
+func (r *Router) DELETE(pattern string, handler func(Context)) Route {
+	return r.Handle("DELETE", pattern, wrap(handler))
+}
+
+// TRACE registers an http TRACE method receiver with the provided contextual Handler
+func (r *Router) TRACE(pattern string, handler func(Context)) Route {
+	return r.Handle("TRACE", pattern, wrap(handler))
+}
+
+// OPTIONS registers an http OPTIONS method receiver with the provided contextual Handler
+func (r *Router) OPTIONS(pattern string, handler func(Context)) Route {
+	return r.Handle("OPTIONS", pattern, wrap(handler))
+}
+
+// CONNECT registers an http CONNECT method receiver with the provided contextual Handler
+func (r *Router) CONNECT(pattern string, handler func(Context)) Route {
+	return r.Handle("CONNECT", pattern, wrap(handler))
+}
+
+// PATCH registers an http PATCH method receiver with the provided contextual Handler
+func (r *Router) PATCH(pattern string, handler func(Context)) Route {
+	return r.Handle("PATCH", pattern, wrap(handler))
+}
+
 // AnyFunc registers the provided HandlerFunc for all of the allowed http methods: GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
 func (r *Router) AnyFunc(pattern string, handler http.HandlerFunc) Route {
 	return r.Any(pattern, http.HandlerFunc(handler))
@@ -310,6 +362,14 @@ func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, n
 				fn(w, r, next.ServeHTTP)
 			})
 		}))
+	}
+}
+
+func (r *Router) USE(middlewares ...func(func(Context)) func(Context)) {
+	for _, mw := range middlewares {
+		r.UseFunc(func(next http.Handler) http.Handler {
+			return wrap(mw(unwrap(next)))
+		})
 	}
 }
 

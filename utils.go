@@ -40,3 +40,9 @@ func wrap(ctxHandler func(Context)) http.Handler {
 	}
 	return http.HandlerFunc(fn)
 }
+
+func unwrap(handler http.Handler) func(Context) {
+	return func(c Context) {
+		handler.ServeHTTP(c, c.Request().WithContext(c))
+	}
+}

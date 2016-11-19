@@ -619,6 +619,49 @@ func TestTrailingSlashRedirect(t *testing.T) {
 	}
 }
 
+func TestUSEContext(t *testing.T) {
+	r := New()
+	r.USE(func(next func(Context)) func(Context) {
+		return func(c Context) {
+			c.WithHeader("FOO", "BAR")
+			next(c)
+		}
+	})
+	r.GET("/", func(c Context) {
+		c.WriteHeader(http.StatusOK)
+	})
+
+	r.USE(func(next func(Context)) func(Context) {
+		return func(c Context) {
+			if c.GetHeader("NEXT") == "true" {
+				next(c)
+				return
+			}
+
+			c.Error(ErrorUnauthorized)
+		}
+	})
+
+	r.GET("/shouldnotpass", func(c Context) {
+		c.WriteHeader(http.StatusOK)
+	})
+
+	test := htest.New(t, r)
+	test.Get("/").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("FOO", "BAR")
+
+	test.Get("/shouldnotpass").Do().
+		ExpectStatus(http.StatusUnauthorized).
+		ExpectHeader("FOO", "BAR")
+
+	test.Get("/shouldnotpass").
+		SetHeader("NEXT", "true").
+		Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("FOO", "BAR")
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
