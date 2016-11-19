@@ -109,7 +109,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 
 			searchHistory = append(searchHistory, search)
 			search = search[len(nn.pattern):]
-			if search == "/" {
+			if search == tree.MainSeparators() {
 				err = ErrTSR
 				break
 			}
