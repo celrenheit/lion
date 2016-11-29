@@ -9,7 +9,7 @@ import (
 
 type ctxRequestIDKeyType int
 
-const CtxRequestIDKey int = 0
+const CtxRequestIDKey ctxRequestIDKeyType = 0
 
 const (
 	headerXRequestID = "X-Request-ID"
