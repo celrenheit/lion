@@ -54,9 +54,9 @@ func (hm *hostMatcher) Register(pattern string) registerMatcher {
 		reversedHost := reverseHost(host)
 		hs = hm.matcher.Set(reversedHost, hs, nil).(*hostStore)
 		return hs.rm
-	} else {
-		return hm.defaultRM
 	}
+
+	return hm.defaultRM
 }
 
 func (hm *hostMatcher) Match(c *ctx, req *http.Request) http.Handler {

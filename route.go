@@ -143,7 +143,7 @@ func (r *route) Handler(method string) http.Handler {
 	return r.getHandler(method)
 }
 
-func (gs *route) Set(value interface{}, tags matcher.Tags) {
+func (r *route) Set(value interface{}, tags matcher.Tags) {
 	if len(tags) != 1 {
 		panicl("Length != 1")
 	}
@@ -161,62 +161,62 @@ func (gs *route) Set(value interface{}, tags matcher.Tags) {
 		}
 	}
 
-	gs.addHandler(method, handler)
+	r.addHandler(method, handler)
 }
 
-func (gs *route) Get(tags matcher.Tags) interface{} {
+func (r *route) Get(tags matcher.Tags) interface{} {
 	if len(tags) != 1 {
 		return nil
 	}
 
 	method := tags[0]
 
-	return gs.getHandler(method)
+	return r.getHandler(method)
 }
 
-func (gs *route) addHandler(method string, handler http.Handler) {
+func (r *route) addHandler(method string, handler http.Handler) {
 	switch method {
 	case GET:
-		gs.get = handler
+		r.get = handler
 	case HEAD:
-		gs.head = handler
+		r.head = handler
 	case POST:
-		gs.post = handler
+		r.post = handler
 	case PUT:
-		gs.put = handler
+		r.put = handler
 	case DELETE:
-		gs.delete = handler
+		r.delete = handler
 	case TRACE:
-		gs.trace = handler
+		r.trace = handler
 	case OPTIONS:
-		gs.options = handler
+		r.options = handler
 	case CONNECT:
-		gs.connect = handler
+		r.connect = handler
 	case PATCH:
-		gs.patch = handler
+		r.patch = handler
 	}
 }
 
-func (gs *route) getHandler(method string) http.Handler {
+func (r *route) getHandler(method string) http.Handler {
 	switch method {
 	case GET:
-		return gs.get
+		return r.get
 	case HEAD:
-		return gs.head
+		return r.head
 	case POST:
-		return gs.post
+		return r.post
 	case PUT:
-		return gs.put
+		return r.put
 	case DELETE:
-		return gs.delete
+		return r.delete
 	case TRACE:
-		return gs.trace
+		return r.trace
 	case OPTIONS:
-		return gs.options
+		return r.options
 	case CONNECT:
-		return gs.connect
+		return r.connect
 	case PATCH:
-		return gs.patch
+		return r.patch
 	default:
 		return nil
 	}

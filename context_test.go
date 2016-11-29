@@ -151,14 +151,14 @@ func TestContextRender(t *testing.T) {
 			{
 				input: &struct {
 					XMLName   xml.Name `xml:"person"`
-					Id        int      `xml:"id,attr"`
+					ID        int      `xml:"id,attr"`
 					FirstName string   `xml:"name>first"`
 					LastName  string   `xml:"name>last"`
 					Age       int      `xml:"age"`
 					Height    float32  `xml:"height,omitempty"`
 					Married   bool
 					Comment   string `xml:",comment"`
-				}{Id: 13, FirstName: "John", LastName: "Doe", Age: 42},
+				}{ID: 13, FirstName: "John", LastName: "Doe", Age: 42},
 				expected: `<person id="13"><name><first>John</first><last>Doe</last></name><age>42</age><Married>false</Married></person>`,
 			},
 		},

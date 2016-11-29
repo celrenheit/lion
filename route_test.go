@@ -17,23 +17,23 @@ func TestRouteGeneratePath(t *testing.T) {
 	}
 
 	tests := []struct {
-		route_name   string
+		routename    string
 		params       map[string]string
 		expectedPath string
 		expectedErr  bool
 	}{
-		{route_name: "a_name", params: mss{"name": "batman"}, expectedPath: "/a/batman"},
-		{route_name: "a_name_n", params: mss{"name": "batman", "n": "123"}, expectedPath: "/a/batman/123"},
-		{route_name: "a_name_n", params: mss{"name": "batman", "n": "1d23"}, expectedErr: true},
-		{route_name: "a_b_dest_path", params: mss{"dest": "batman", "path": "subfolder/test/hello.jpeg"}, expectedPath: "/a/b/batman/subfolder/test/hello.jpeg"},
-		{route_name: "e_file_ext", params: mss{"file": "test", "ext": "mp4"}, expectedPath: "/e/test.mp4"},
+		{routename: "a_name", params: mss{"name": "batman"}, expectedPath: "/a/batman"},
+		{routename: "a_name_n", params: mss{"name": "batman", "n": "123"}, expectedPath: "/a/batman/123"},
+		{routename: "a_name_n", params: mss{"name": "batman", "n": "1d23"}, expectedErr: true},
+		{routename: "a_b_dest_path", params: mss{"dest": "batman", "path": "subfolder/test/hello.jpeg"}, expectedPath: "/a/b/batman/subfolder/test/hello.jpeg"},
+		{routename: "e_file_ext", params: mss{"file": "test", "ext": "mp4"}, expectedPath: "/e/test.mp4"},
 	}
 
 	for _, test := range tests {
-		path, err := l.Route(test.route_name).Path(test.params)
+		path, err := l.Route(test.routename).Path(test.params)
 
 		// Test with RoutePathBuilder
-		builder := l.Route(test.route_name).Build()
+		builder := l.Route(test.routename).Build()
 		for k, v := range test.params {
 			builder.WithParam(k, v)
 		}

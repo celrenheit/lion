@@ -15,7 +15,7 @@ import (
 type ctxKeyType int
 
 // Context key to store *ctx
-var ctxKey ctxKeyType = 0
+const ctxKey ctxKeyType = 0
 
 var (
 	// ErrInvalidRedirectStatusCode is used to notify when an invalid redirect status code is used on Context.Redirect()
