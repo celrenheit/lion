@@ -68,6 +68,8 @@ func (middlewares Middlewares) BuildHandler(handler http.Handler) http.Handler {
 	return handler
 }
 
-func (mws Middlewares) ServeNext(next http.Handler) http.Handler {
-	return mws.BuildHandler(next)
+// ServeNext allows Middlewares to implement the Middleware interface.
+// This is useful to allow Grouping middlewares together and being able to use them as a single Middleware.
+func (middlewares Middlewares) ServeNext(next http.Handler) http.Handler {
+	return middlewares.BuildHandler(next)
 }

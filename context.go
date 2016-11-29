@@ -18,6 +18,7 @@ type ctxKeyType int
 var ctxKey ctxKeyType = 0
 
 var (
+	// ErrInvalidRedirectStatusCode is used to notify when an invalid redirect status code is used on Context.Redirect()
 	ErrInvalidRedirectStatusCode = errors.New("Invalid redirect status code")
 
 	contentTypeJSON      = "application/json; charset=utf-8"
@@ -31,6 +32,8 @@ var _ context.Context = (*ctx)(nil)
 var _ Context = (*ctx)(nil)
 var _ http.ResponseWriter = (*ctx)(nil)
 
+// Context is used to store url params and is a convinient utility to read informations from the current *http.Request and render to the current http.ResponseWriter.
+// It implements the http.ResponseWriter interface.
 type Context interface {
 	context.Context
 	http.ResponseWriter
@@ -325,6 +328,13 @@ type parameter struct {
 	val string
 }
 
+// HTTPError allows to write an error to http.ResponseWriter.
+// You can use it with Context. Like in the following example:
+//		 func(c lion.Context) {
+//		 	c.Error(lion.ErrorUnauthorized)
+//		 }
+// This will return a response with status code 401 and a body of "Unauthorized".
+// Check below for the available http error
 type HTTPError interface {
 	error
 	Status() int
@@ -332,13 +342,21 @@ type HTTPError interface {
 
 var (
 	// 4xx
-	ErrorBadRequest       HTTPError = httpError{http.StatusBadRequest}
-	ErrorUnauthorized     HTTPError = httpError{http.StatusUnauthorized}
-	ErrorForbidden        HTTPError = httpError{http.StatusForbidden}
-	ErrorNotFound         HTTPError = httpError{http.StatusNotFound}
+
+	// ErrorBadRequest returns a BadRequest response with the corresponding body
+	ErrorBadRequest HTTPError = httpError{http.StatusBadRequest}
+	// ErrorUnauthorized returns a Unauthorized response with the corresponding body
+	ErrorUnauthorized HTTPError = httpError{http.StatusUnauthorized}
+	// ErrorForbidden returns a Forbidden response with the corresponding body
+	ErrorForbidden HTTPError = httpError{http.StatusForbidden}
+	// ErrorNotFound returns a NotFound response with the corresponding body
+	ErrorNotFound HTTPError = httpError{http.StatusNotFound}
+	// ErrorMethodNotAllowed returns a MethodNotAllowed response with the corresponding body
 	ErrorMethodNotAllowed HTTPError = httpError{http.StatusMethodNotAllowed}
 
 	// 5xx
+
+	// ErrorInternalServer returns a InternalServerError response with the corresponding body
 	ErrorInternalServer HTTPError = httpError{http.StatusInternalServerError}
 )
 

@@ -13,6 +13,8 @@ import (
 // If you want to add middleware you should add them by yourself.
 // WithMethod(method string, handler http.Handler) Route
 
+// Routes is an slice of Route.
+// Check Routes.ByName or Routes.ByPattern to find out if it is useful to you
 type Routes []Route
 
 func (rs Routes) String() string {
@@ -23,6 +25,8 @@ func (rs Routes) String() string {
 	return strings.Join(sa, ", ")
 }
 
+// ByName returns the route corresponding to the name given.
+// It returns nil otherwise.
 func (rs Routes) ByName(name string) Route {
 	// Since all routes have their name empty by default,
 	// we cannot return the first route with an empty name
@@ -38,6 +42,8 @@ func (rs Routes) ByName(name string) Route {
 	return nil
 }
 
+// ByPattern returns the route corresponding to the pattern given.
+// It returns nil otherwise.
 func (rs Routes) ByPattern(pattern string) Route {
 	if pattern == "" {
 		return nil
@@ -51,6 +57,9 @@ func (rs Routes) ByPattern(pattern string) Route {
 	return nil
 }
 
+// Route defines a single route registered in your Router.
+// A Route corresponds to the pattern and host given.
+// It contains the handlers for each HTTP methods.
 type Route interface {
 	WithName(name string) Route
 
@@ -213,6 +222,12 @@ func (gs *route) getHandler(method string) http.Handler {
 	}
 }
 
+// RoutePathBuilder is a convenient utility to build path given each url parameters.
+// Here is a simple example usage.
+//		 router := New()
+//		 route := router.Get("/posts/:user", postsHandler)
+//		 path := route.Build().WithParam("user", "123")
+//		 // path should be equal to "/posts/123"
 type RoutePathBuilder interface {
 	WithParam(key, value string) RoutePathBuilder
 	Path() (string, error)

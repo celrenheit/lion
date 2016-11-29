@@ -355,6 +355,9 @@ func (r *Router) UseFunc(middlewareFuncs ...MiddlewareFunc) {
 	}
 }
 
+// UseNext allows to use middlewares with the following form: func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
+// Previously named: UseNegroniFunc.
+// This can be useful if you want to use negroni style middleware or a middleware already built by the community.
 func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)) {
 	for _, fn := range funcs {
 		r.Use(MiddlewareFunc(func(next http.Handler) http.Handler {
@@ -365,6 +368,19 @@ func (r *Router) UseNext(funcs ...func(w http.ResponseWriter, r *http.Request, n
 	}
 }
 
+// USE allows you to use contextual middlewares.
+// Example:
+//		 router.USE(func (next func(Context)) func(Context) {
+//		 	return func(c Context) {
+//		 		if c.GetHeader("Authorization") == "" {
+//		 			c.Error(lion.ErrorUnauthorized)
+//		 			return
+//		 		}
+//		 		next(c)
+//		 	}
+//		 })
+// This will return an HTTP 401 Unauthorized response if the "Authorization" header is set.
+// Otherwise, it will continue to next middleware.
 func (r *Router) USE(middlewares ...func(func(Context)) func(Context)) {
 	for _, mw := range middlewares {
 		r.UseFunc(func(next http.Handler) http.Handler {
@@ -528,10 +544,16 @@ func validatePattern(pattern string) {
 }
 
 // Route get the Route associated with the name specified.
+// Each Route corresponds to a pattern and a host registered.
+// 		GET host1.org/users
+// 		POST host1.org/users
+// share the same Route.
+// If you want to get the http.Handler for a specific HTTP method, please refer to Route.Handler(method) method.
 func (r *Router) Route(name string) Route {
 	return r.Routes().ByName(name)
 }
 
+// Routes returns the Routes associated with the current Router instance.
 func (r *Router) Routes() Routes {
 	routes := make(Routes, len(r.routes))
 	for i := 0; i < len(r.routes); i++ {
