@@ -17,6 +17,7 @@ import (
 // Check Routes.ByName or Routes.ByPattern to find out if it is useful to you
 type Routes []Route
 
+// String returns a string representation of a list of routes.
 func (rs Routes) String() string {
 	sa := make([]string, 0, len(rs))
 	for _, r := range rs {
@@ -61,17 +62,33 @@ func (rs Routes) ByPattern(pattern string) Route {
 // A Route corresponds to the pattern and host given.
 // It contains the handlers for each HTTP methods.
 type Route interface {
+	// WithName allows to specify a name for the current route
 	WithName(name string) Route
 
+	// Methods returns the http methods set for the current route
 	Methods() (methods []string)
+
+	// Host returns the host set
 	Host() string
+
+	// Name returns the name set for the current route
 	Name() string
+
+	// Pattern returns the underlying pattern for the route
 	Pattern() string
+
+	// Handler return the according http.Handler for the method specified
+	// The returned handler is already built using the middlewares in *Router
 	Handler(method string) http.Handler
 
-	// Path building
+	// Path returns a path with the provided params.
+	// If any of the params is missing this function will return an error.
 	Path(params map[string]string) (string, error)
+
+	// Build allows you to build params by params.
+	// For example: route.Build().WithParam("id", "123").WithParam("post_id", "456")
 	Build() RoutePathBuilder
+
 	// Convenient alias for Build().WithParam()
 	// Calling this method will create a new RoutePathBuilder
 	WithParam(key, value string) RoutePathBuilder
