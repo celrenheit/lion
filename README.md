@@ -1,24 +1,8 @@
 # Lion [![Build Status](https://img.shields.io/travis/celrenheit/lion.svg?style=flat-square)](https://travis-ci.org/celrenheit/lion) [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/celrenheit/lion) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/celrenheit/lion?style=flat-square)](https://goreportcard.com/report/github.com/celrenheit/lion)
 
-Lion is a [fast](#benchmarks) HTTP router for Go with support for middlewares for building modern scalable modular REST APIs.
+Lion is a [fast](#benchmarks) HTTP router for building modern scalable modular REST APIs written in Go (golang).
 
 ![Lion's Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello-speed2-sm.min.gif)
-
-## Lion v2
-
-If you are starting a new project, please consider starting out using the [_v2_](https://github.com/celrenheit/lion/tree/v2) 
-and the new [documentation](https://godoc.org/gopkg.in/celrenheit/lion.v2) branch. It contains a few breaking changes.
-
-The most important one is that it now uses native [http.Handler](https://golang.org/pkg/net/http/#Handler).
-
-# Important
-
-If you are using lion v1, please change your import path to `gopkg.in/celrenheit/lion.v1`.
-
-You can get lion via:
-```shell
-go get -u gopkg.in/celrenheit/lion.v1
-```
 
 ## Features
 
@@ -66,7 +50,7 @@ It makes a shallow copy of the request.
 Lion requires Go 1.7+:
 
 ```shell
-$ go get -u gopkg.in/celrenheit/lion.v1
+$ go get -u github.com/celrenheit/lion
 ```
 
 Next versions of Lion will support the latest Go version and the previous one. 
