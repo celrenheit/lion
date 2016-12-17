@@ -1,6 +1,7 @@
 package lion
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -10,16 +11,17 @@ import (
 	"testing"
 
 	"github.com/celrenheit/htest"
-
-	"golang.org/x/net/context"
+	"github.com/fatih/color"
 )
 
 var (
-	emptyParams = M{}
+	emptyParams = mss{}
 )
 
 func TestRouteMatching(t *testing.T) {
 	helloHandler := fakeHandler()
+	helloNameEscapedParamHandler := fakeHandler()
+	helloNameNestedEscapedParamHandler := fakeHandler()
 	helloNameHandler := fakeHandler()
 	helloNameTweetsHandler := fakeHandler()
 	helloNameGetTweetHandler := fakeHandler()
@@ -31,7 +33,9 @@ func TestRouteMatching(t *testing.T) {
 	helloContactNamedSubParamHandler := fakeHandler()
 	helloContactByPersonHandler := fakeHandler()
 	helloContactByPersonStaticHandler := fakeHandler()
+	helloContactByPersonStaticSubHandler := fakeHandler()
 	helloContactByPersonToPersonHandler := fakeHandler()
+	helloContactByPersonToPersonEscapedHandler := fakeHandler()
 	helloContactByPersonAndPathHandler := fakeHandler()
 	extensionHandler := fakeHandler()
 	usernameHandler := fakeHandler()
@@ -42,14 +46,25 @@ func TestRouteMatching(t *testing.T) {
 	userMainWildcard := fakeHandler()
 	emptywildcardHandler := fakeHandler()
 	unicodeAlphaHandler := fakeHandler()
+	regexpRoot := fakeHandler()
+	regexpStatic := fakeHandler()
+	regexpStaticPrefix := fakeHandler()
+	regexpParam3 := fakeHandler()
+	regexpStatic2 := fakeHandler()
+	regexpOnlyNumbers := fakeHandler()
+	regexpABC := fakeHandler()
+	regexpABCN := fakeHandler()
+	regexpABCAny := fakeHandler()
 
 	routes := []struct {
 		Method  string
 		Pattern string
-		Handler Handler
+		Handler http.Handler
 	}{
 		{Pattern: "/hello", Handler: helloHandler},
 		{Pattern: "/hello/contact", Handler: helloContactHandler},
+		{Pattern: `/hello/\:name`, Handler: helloNameEscapedParamHandler},
+		{Pattern: "/hello/\\:name/\\:nested/\\:escaped", Handler: helloNameNestedEscapedParamHandler},
 		{Pattern: "/hello/:name", Handler: helloNameHandler},
 		{Pattern: "/hello/:name/tweets", Handler: helloNameTweetsHandler},
 		{Pattern: "/hello/:name/tweets/:id", Handler: helloNameGetTweetHandler},
@@ -60,7 +75,9 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/hello/contact/named/:param", Handler: helloContactNamedSubParamHandler},
 		{Pattern: "/hello/contact/:dest", Handler: helloContactByPersonHandler},
 		{Pattern: "/hello/contact/:dest/static", Handler: helloContactByPersonStaticHandler},
+		{Pattern: "/hello/contact/:dest/static/sub", Handler: helloContactByPersonStaticSubHandler},
 		{Pattern: "/hello/contact/:dest/:from", Handler: helloContactByPersonToPersonHandler},
+		{Pattern: "/hello/contact/\\:dest/\\:from", Handler: helloContactByPersonToPersonEscapedHandler},
 		{Pattern: "/hello/contact/:dest/*path", Handler: helloContactByPersonAndPathHandler},
 		{Pattern: "/extension/:file.:ext", Handler: extensionHandler},
 		{Pattern: "/@:username", Handler: usernameHandler},
@@ -71,43 +88,73 @@ func TestRouteMatching(t *testing.T) {
 		{Pattern: "/users/*", Handler: userMainWildcard},
 		{Pattern: "/empty/*", Handler: emptywildcardHandler},
 		{Pattern: "/α", Handler: unicodeAlphaHandler},
+		{Pattern: "/regexp", Handler: regexpRoot},
+		{Pattern: "/regexp/static", Handler: regexpStatic},
+		{Pattern: "/regexp/bb", Handler: regexpStaticPrefix},
+		{Pattern: "/regexp/bbbb", Handler: regexpStatic2},
+		{Pattern: "/regexp/:param([a-z]{3})", Handler: regexpParam3},
+		{Pattern: "/regexp/n/:n([0-9]+)", Handler: regexpOnlyNumbers},
+		{Pattern: "/regexp/abc/:p(a|b/c)", Handler: regexpABC},
+		{Pattern: "/regexp/abc/:p(a|b/c)/:n([0-9]+)", Handler: regexpABCN},
+		{Pattern: "/regexp/abc/*any", Handler: regexpABCAny},
 	}
 
 	tests := []struct {
 		Method          string
 		Input           string
-		ExpectedHandler Handler
-		ExpectedParams  M
+		ExpectedHandler http.Handler
+		ExpectedParams  mss
 		ExpectedStatus  int
 	}{
 		{Input: "/hello", ExpectedHandler: helloHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "batman"}},
-		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "dot.inthemiddle"}},
-		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: M{"name": "batman"}},
-		{Input: "/hello/batman/tweets/123", ExpectedHandler: helloNameGetTweetHandler, ExpectedParams: M{"name": "batman", "id": "123"}},
+		{Input: "/hello/:name", ExpectedHandler: helloNameEscapedParamHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/:name/:nested/:escaped", ExpectedHandler: helloNameNestedEscapedParamHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/batman", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "batman"}},
+		{Input: "/hello/dot.inthemiddle", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "dot.inthemiddle"}},
+		{Input: "/hello/batman/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "batman"}},
+		{Input: "/hello/batman/tweets/123", ExpectedHandler: helloNameGetTweetHandler, ExpectedParams: mss{"name": "batman", "id": "123"}},
 		{Input: "/carts", ExpectedHandler: cartsHandler, ExpectedParams: emptyParams},
-		{Input: "/carts/123456", ExpectedHandler: getCartHandler, ExpectedParams: M{"cartid": "123456"}},
+		{Input: "/carts/123456", ExpectedHandler: getCartHandler, ExpectedParams: mss{"cartid": "123456"}},
 		{Input: "/hello/contact", ExpectedHandler: helloContactHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named", ExpectedHandler: helloContactNamedHandler, ExpectedParams: emptyParams},
 		{Input: "/hello/contact/named/deeper", ExpectedHandler: helloContactNamedDeeperHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: M{"param": "batman"}},
-		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: M{"dest": "nameddd"}},
-		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: M{"dest": "batman"}},
-		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: M{"dest": "batman"}},
-		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: M{"dest": "batman", "from": "robin"}},
-		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: M{"dest": "batman", "path": "folder/subfolder/file"}},
-		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: M{"file": "batman", "ext": "jpg"}},
-		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: M{"username": "celrenheit"}},
-		{Input: "/mail@test.com", ExpectedHandler: mailAtHandler, ExpectedParams: M{"domain": "test.com"}},
-		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: M{"*": "unkownpath/subfolder"}},
-		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: M{"userID": "123"}},
-		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: M{"*": "123/okay/yes"}},
-		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: M{"*": "123/okay/yes"}},
-		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: M{"*": ""}},
+		{Input: "/hello/contact/named/batman", ExpectedHandler: helloContactNamedSubParamHandler, ExpectedParams: mss{"param": "batman"}},
+		{Input: "/hello/contact/nameddd", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/static/a/b/c/d", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "nameddd", "path": "static/a/b/c/d"}},
+		{Input: "/hello/contact/nameddd/static/sub", ExpectedHandler: helloContactByPersonStaticSubHandler, ExpectedParams: mss{"dest": "nameddd"}},
+		{Input: "/hello/contact/nameddd/staticcc", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "nameddd", "from": "staticcc"}},
+		{Input: "/hello/contact/batman", ExpectedHandler: helloContactByPersonHandler, ExpectedParams: mss{"dest": "batman"}},
+		{Input: "/hello/contact/batman/static", ExpectedHandler: helloContactByPersonStaticHandler, ExpectedParams: mss{"dest": "batman"}},
+		{Input: "/hello/contact/batman/robin", ExpectedHandler: helloContactByPersonToPersonHandler, ExpectedParams: mss{"dest": "batman", "from": "robin"}},
+		{Input: "/hello/contact/:dest/:from", ExpectedHandler: helloContactByPersonToPersonEscapedHandler, ExpectedParams: emptyParams},
+		{Input: "/hello/contact/batman/folder/subfolder/file", ExpectedHandler: helloContactByPersonAndPathHandler, ExpectedParams: mss{"dest": "batman", "path": "folder/subfolder/file"}},
+		{Input: "/extension/batman.jpg", ExpectedHandler: extensionHandler, ExpectedParams: mss{"file": "batman", "ext": "jpg"}},
+		{Input: "/@celrenheit", ExpectedHandler: usernameHandler, ExpectedParams: mss{"username": "celrenheit"}},
+		{Input: "/mail@test.com", ExpectedHandler: mailAtHandler, ExpectedParams: mss{"domain": "test.com"}},
+		{Input: "/static/unkownpath/subfolder", ExpectedHandler: wildcardHandler, ExpectedParams: mss{"*": "unkownpath/subfolder"}},
+		{Input: "/users/123/profile", ExpectedHandler: userProfileHandler, ExpectedParams: mss{"userID": "123"}},
+		{Input: "/users/super/123/okay/yes", ExpectedHandler: userSuperHandler, ExpectedParams: mss{"*": "123/okay/yes"}},
+		{Input: "/users/123/okay/yes", ExpectedHandler: userMainWildcard, ExpectedParams: mss{"*": "123/okay/yes"}},
+		{Input: "/empty/", ExpectedHandler: emptywildcardHandler, ExpectedParams: mss{"*": ""}},
 		{Input: "/carts404", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
 		{Input: "/α", ExpectedHandler: unicodeAlphaHandler, ExpectedParams: emptyParams},
-		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: M{"name": "أسد"}},
-		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: M{"name": "أسد"}},
+		{Input: "/hello/أسد", ExpectedHandler: helloNameHandler, ExpectedParams: mss{"name": "أسد"}},
+		{Input: "/hello/أسد/tweets", ExpectedHandler: helloNameTweetsHandler, ExpectedParams: mss{"name": "أسد"}},
+		{Input: "/regexp", ExpectedHandler: regexpRoot, ExpectedParams: emptyParams},
+		{Input: "/regexp/static", ExpectedHandler: regexpStatic, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaa", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "aaa"}},
+		{Input: "/regexp/bb", ExpectedHandler: regexpStaticPrefix, ExpectedParams: emptyParams},
+		{Input: "/regexp/bbb", ExpectedHandler: regexpParam3, ExpectedParams: mss{"param": "bbb"}},
+		{Input: "/regexp/bbbb", ExpectedHandler: regexpStatic2, ExpectedParams: emptyParams},
+		{Input: "/regexp/aaaa", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/n/123456", ExpectedHandler: regexpOnlyNumbers, ExpectedParams: mss{"n": "123456"}},
+		{Input: "/regexp/n/hello", ExpectedHandler: nil, ExpectedParams: emptyParams, ExpectedStatus: http.StatusNotFound},
+		{Input: "/regexp/abc/a", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "a"}},
+		{Input: "/regexp/abc/b/c", ExpectedHandler: regexpABC, ExpectedParams: mss{"p": "b/c"}},
+		{Input: "/regexp/abc/a/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "a", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456", ExpectedHandler: regexpABCN, ExpectedParams: mss{"p": "b/c", "n": "123456"}},
+		{Input: "/regexp/abc/b/c/123456/test", ExpectedHandler: regexpABCAny, ExpectedParams: mss{"any": "b/c/123456/test"}},
 	}
 
 	mux := New()
@@ -128,18 +175,17 @@ func TestRouteMatching(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest(method, test.Input, nil)
-		c := &Context{
-			parent: context.TODO(),
-		}
+		c := newContextWithParent(context.TODO())
 		h := mux.hostrm.Match(c, req)
+		req = setParamContext(req, c)
 
-		if len(test.ExpectedParams) != len(c.keys) {
-			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.keys), c.toMap(), test.Input)
+		if len(test.ExpectedParams) != len(c.params) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for path %s", len(test.ExpectedParams), len(c.params), c.toMap(), test.Input)
 		}
 
 		// Compare params
 		for k, v := range test.ExpectedParams {
-			actual := Param(c, k)
+			actual := Param(req, k)
 			if actual != v {
 				t.Errorf("Expected key %s to equal %s but got %s for url: %s", cyan(k), green(v), red(actual), test.Input)
 			}
@@ -158,11 +204,13 @@ func TestRouteMatching(t *testing.T) {
 		tester.Request(method, test.Input).Do().
 			ExpectStatus(expectedStatus)
 	}
+
+	// fmt.Println(matcher.Print(mux.hostrm.defaultRM.(*pathMatcher).matcher))
 }
 
 type anyHandler struct{}
 
-func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (a anyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprintf(w, "Any::%s", r.Method)
 }
@@ -170,7 +218,7 @@ func (a anyHandler) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http
 func TestAnyMethod(t *testing.T) {
 
 	l := New()
-	l.AnyFunc("/apifunc", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.AnyFunc("/apifunc", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprintf(w, "AnyFunc::%s", r.Method)
 	})
@@ -193,17 +241,17 @@ func TestAnyMethod(t *testing.T) {
 
 type testmw struct{}
 
-func (m testmw) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (m testmw) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Test-Key", "Test-Value")
-		next.ServeHTTPC(c, w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
 func TestMiddleware(t *testing.T) {
 	mux := New()
 	mux.Use(testmw{})
-	mux.Get("/hi", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.Get("/hi", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hi!"))
 	}))
 	htest.New(t, mux).Get("/hi").Do().ExpectHeader("Test-Key", "Test-Value")
@@ -211,13 +259,13 @@ func TestMiddleware(t *testing.T) {
 
 func TestMiddlewareFunc(t *testing.T) {
 	mux := New()
-	mux.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Test-Value")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
-	mux.Get("/hi", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	mux.Get("/hi", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hi!"))
 	}))
 
@@ -226,7 +274,7 @@ func TestMiddlewareFunc(t *testing.T) {
 
 func TestMiddlewareChain(t *testing.T) {
 	mux := New()
-	mux.UseFunc(func(next Handler) Handler {
+	mux.UseFunc(func(next http.Handler) http.Handler {
 		return nil
 	})
 }
@@ -235,7 +283,7 @@ func TestMountingSubrouter(t *testing.T) {
 	mux := New()
 
 	adminrouter := New()
-	adminrouter.GetFunc("/:id", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	adminrouter.GetFunc("/:id", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("admin", "id")
 	})
 
@@ -249,26 +297,26 @@ func TestGroupSubGroup(t *testing.T) {
 
 	admin := s.Group("/admin")
 	sub := admin.Subrouter()
-	sub.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Get")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	sub.GetFunc("/", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub.GetFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Get"))
 	})
 
 	sub2 := admin.Subrouter()
-	sub2.UseFunc(func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub2.UseFunc(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "Put")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	sub2.PutFunc("/", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	sub2.PutFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Put"))
 	})
 
@@ -312,29 +360,29 @@ func TestSubrouter(t *testing.T) {
 
 func TestNamedMiddlewares(t *testing.T) {
 	l := New()
-	l.DefineFunc("admin", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("admin", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "admin")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	l.DefineFunc("public", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("public", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Test-Key", "public")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
 	g := l.Group("/admin")
 	g.UseNamed("admin")
-	g.GetFunc("/test", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	g.GetFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("admintest"))
 	})
 
 	p := l.Group("/public")
 	p.UseNamed("public")
-	p.GetFunc("/test", func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	p.GetFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("publictest"))
 	})
 
@@ -478,12 +526,15 @@ func TestAutomaticOptions(t *testing.T) {
 		ExpectStatus(http.StatusOK).
 		ExpectHeader("Accept", "POST,PUT,TRACE,PATCH,OPTIONS")
 
+	test.Get("/api").Do().
+		ExpectStatus(http.StatusMethodNotAllowed)
+
 	test.Options("/404").Do().
 		ExpectStatus(http.StatusNotFound).
 		ExpectHeader("Accept", "")
 
 	// Allow custom options handler
-	l.Options("/api", HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.Options("/api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Batman", "Robin")
 		w.WriteHeader(http.StatusFound)
 	}))
@@ -546,6 +597,78 @@ func TestValidation(t *testing.T) {
 	}
 }
 
+func TestTrailingSlashRedirect(t *testing.T) {
+	router := New()
+	router.Get("/a", fakeHandler())
+	router.Get("/b/", fakeHandler())
+	router.Get("/noslash/:param", fakeHandler())
+	router.Get("/withslash/:param/", fakeHandler())
+	test := htest.New(t, router)
+
+	tests := map[string]string{
+		"/a/":              "/a",
+		"/b":               "/b/",
+		"/noslash/here/":   "/noslash/here",
+		"/withslash/here/": "/withslash/here",
+		"/withslash/":      "",
+		"/withslash":       "",
+		"/":                "",
+	}
+
+	for input, expectedRedirect := range tests {
+		code := http.StatusMovedPermanently
+		if expectedRedirect == "" {
+			code = 404
+		}
+		test.Get(input).Do().
+			ExpectStatus(code).
+			ExpectHeader("Location", expectedRedirect)
+	}
+}
+
+func TestUSEContext(t *testing.T) {
+	r := New()
+	r.USE(func(next func(Context)) func(Context) {
+		return func(c Context) {
+			c.WithHeader("FOO", "BAR")
+			next(c)
+		}
+	})
+	r.GET("/", func(c Context) {
+		c.WriteHeader(http.StatusOK)
+	})
+
+	r.USE(func(next func(Context)) func(Context) {
+		return func(c Context) {
+			if c.GetHeader("NEXT") == "true" {
+				next(c)
+				return
+			}
+
+			c.Error(ErrorUnauthorized)
+		}
+	})
+
+	r.GET("/shouldnotpass", func(c Context) {
+		c.WriteHeader(http.StatusOK)
+	})
+
+	test := htest.New(t, r)
+	test.Get("/").Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("FOO", "BAR")
+
+	test.Get("/shouldnotpass").Do().
+		ExpectStatus(http.StatusUnauthorized).
+		ExpectHeader("FOO", "BAR")
+
+	test.Get("/shouldnotpass").
+		SetHeader("NEXT", "true").
+		Do().
+		ExpectStatus(http.StatusOK).
+		ExpectHeader("FOO", "BAR")
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -559,18 +682,18 @@ func catchPanic(fn func()) (recv interface{}) {
 // TODO: Find a better way to compare handlers that using a random token
 type fakeHandlerType struct{ t string }
 
-func (f *fakeHandlerType) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {}
+func (f *fakeHandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
-func fakeHandler() Handler {
+func fakeHandler() http.Handler {
 	return &fakeHandlerType{t: randToken()}
 }
 
 type fakemw struct{ key, val string }
 
-func (f *fakemw) ServeNext(next Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (f *fakemw) ServeNext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(f.key, f.val)
-		next.ServeHTTPC(c, w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -583,3 +706,9 @@ func randToken() string {
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }
+
+// Test utils
+
+var red = color.New(color.FgRed).SprintFunc()
+var green = color.New(color.FgGreen).SprintFunc()
+var cyan = color.New(color.FgCyan).SprintFunc()

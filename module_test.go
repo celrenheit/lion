@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/celrenheit/htest"
-
-	"golang.org/x/net/context"
 )
 
 type testmodule struct {
@@ -29,23 +27,23 @@ func (m testmodule) Uses() (mws Middlewares) {
 	return mws
 }
 
-func (m testmodule) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (m testmodule) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("getmodule"))
 }
 
 func TestModule(t *testing.T) {
 	l := New()
-	l.DefineFunc("auth", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("auth", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("auth", "authmw")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	l.DefineFunc("jwt", func(next Handler) Handler {
-		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	l.DefineFunc("jwt", func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("token", "jwtmw")
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 

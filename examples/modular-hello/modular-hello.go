@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
-	"golang.org/x/net/context"
+	"github.com/celrenheit/lion/middleware"
 )
 
 func main() {
-	l := lion.Classic()
+	l := lion.New(middleware.Classic())
 	api := l.Group("/api")
 	api.Module(products{})
 	l.Run()
@@ -23,11 +23,11 @@ func (p products) Base() string {
 	return "/products"
 }
 
-func (p products) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p products) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Fetching all products")
 }
 
-func (p products) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p products) Post(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Creating a new product")
 }
 
@@ -40,17 +40,17 @@ func (p products) Routes(r *lion.Router) {
 // It handles getting, editing and deleting a single product
 type oneProduct struct{}
 
-func (p oneProduct) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p oneProduct) Get(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Getting product: %s", id)
 }
 
-func (p oneProduct) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p oneProduct) Put(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Updating article: %s", id)
 }
 
-func (p oneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p oneProduct) Delete(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Deleting article: %s", id)
 }

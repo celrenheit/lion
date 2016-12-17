@@ -17,14 +17,14 @@
 //		 	"net/http"
 //
 //		 	"github.com/celrenheit/lion"
-//		 	"golang.org/x/net/context"
+//		 	"context"
 //		 )
 //
-//		 func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 func Home(w http.ResponseWriter, r *http.Request) {
 //		 	fmt.Fprintf(w, "Home")
 //		 }
 //
-//		 func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
+//		 func Hello(w http.ResponseWriter, r *http.Request) {
 //		 	name := lion.Param(c, "name")
 //		 	fmt.Fprintf(w, "Hello "+name)
 //		 }
@@ -42,56 +42,18 @@
 //
 package lion
 
-import (
-	"fmt"
-	"net/http"
-	"os"
-
-	"golang.org/x/net/context"
-)
-
-func init() {
-	if os.Getenv("LION_DISABLE_NOTICE") == "" {
-		fmt.Println(`
-Update notice:
-	Please switch to the 'v1' branch instead of 'master' for lion v1.
-	You can get it with:
-		go get -u gopkg.in/celrenheit/lion.v1
-	The import path for v1 might change in the future.
-	You can disable the above notice with this environnement variable:
-		LION_DISABLE_NOTICE=1
-	`)
-	}
-}
-
-// Handler responds to an HTTP request
-type Handler interface {
-	ServeHTTPC(context.Context, http.ResponseWriter, *http.Request)
-}
-
-// HandlerFunc is a wrapper for a function to implement the Handler interface
-type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
-
-// ServeHTTP makes HandlerFunc implement net/http.Handler interface
-func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h(contextFromRequest(r), w, r)
-}
-
-// ServeHTTPC makes HandlerFunc implement Handler interface
-func (h HandlerFunc) ServeHTTPC(c context.Context, w http.ResponseWriter, r *http.Request) {
-	h(c, w, r)
-}
+import "net/http"
 
 // Middleware interface that takes as input a Handler and returns a Handler
 type Middleware interface {
-	ServeNext(Handler) Handler
+	ServeNext(http.Handler) http.Handler
 }
 
 // MiddlewareFunc wraps a function that takes as input a Handler and returns a Handler. So that it implements the Middlewares interface
-type MiddlewareFunc func(Handler) Handler
+type MiddlewareFunc func(http.Handler) http.Handler
 
 // ServeNext makes MiddlewareFunc implement Middleware
-func (m MiddlewareFunc) ServeNext(next Handler) Handler {
+func (m MiddlewareFunc) ServeNext(next http.Handler) http.Handler {
 	return m(next)
 }
 
@@ -99,12 +61,15 @@ func (m MiddlewareFunc) ServeNext(next Handler) Handler {
 type Middlewares []Middleware
 
 // BuildHandler builds a chain of middlewares from a passed Handler and returns a Handler
-func (middlewares Middlewares) BuildHandler(handler Handler) Handler {
+func (middlewares Middlewares) BuildHandler(handler http.Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = middlewares[i].ServeNext(handler)
 	}
 	return handler
 }
 
-// M is an alias for map[string]string.
-type M map[string]string
+// ServeNext allows Middlewares to implement the Middleware interface.
+// This is useful to allow Grouping middlewares together and being able to use them as a single Middleware.
+func (middlewares Middlewares) ServeNext(next http.Handler) http.Handler {
+	return middlewares.BuildHandler(next)
+}

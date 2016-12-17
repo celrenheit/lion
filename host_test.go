@@ -23,10 +23,13 @@ func TestHostMatcher(t *testing.T) {
 	ipv4ParamH := fakeHandler()
 	ipv4WildH := fakeHandler()
 	ipv4WildParamH := fakeHandler()
+	regex3Chars := fakeHandler()
+	regexDot := fakeHandler()
+	regexDotN := fakeHandler()
 
 	toRegister := []struct {
 		pattern string
-		handler Handler
+		handler http.Handler
 	}{
 		{pattern: "test.batman.com", handler: staticH},
 		{pattern: "$demo.batman.com", handler: demoH},
@@ -42,6 +45,11 @@ func TestHostMatcher(t *testing.T) {
 		{pattern: "01.$second.03.04", handler: ipv4ParamH},
 		{pattern: "*.03.04", handler: ipv4WildH},
 		{pattern: "*.03.04:$port", handler: ipv4WildParamH},
+
+		{pattern: "$sub([a-z]{3}).regex.org", handler: regex3Chars},
+		{pattern: "$sub([a-z]{3}).regex.org", handler: regex3Chars},
+		{pattern: "$sub(a|b\\.c).regex-dot.org", handler: regexDot},
+		{pattern: "$n([0-9]+).$sub(a|b\\.c).regex-dot.org", handler: regexDotN},
 	}
 
 	for _, register := range toRegister {
@@ -51,78 +59,50 @@ func TestHostMatcher(t *testing.T) {
 
 	tests := []struct {
 		input           string
-		expectedParams  M
-		expectedHandler Handler
+		expectedParams  mss
+		expectedHandler http.Handler
 	}{
-		{
-			input: "test.batman.com", expectedParams: M{},
-			expectedHandler: staticH,
-		},
-		{
-			input: "admin.batman.com", expectedParams: M{"demo": "admin"},
-			expectedHandler: demoH,
-		},
-		{
-			input: "forever.batman.com", expectedParams: M{"demo": "forever"},
-			expectedHandler: demoH,
-		},
-		{
-			input: "this.is.admin.batman.com", expectedParams: M{"*": "this.is.admin"},
-			expectedHandler: wildH,
-		},
-		{
-			input: "batman.org:8080", expectedParams: M{"tld": "org", "port": "8080"},
-			expectedHandler: tldPortH,
-		},
+		{input: "test.batman.com", expectedParams: mss{}, expectedHandler: staticH},
+		{input: "admin.batman.com", expectedParams: mss{"demo": "admin"}, expectedHandler: demoH},
+		{input: "forever.batman.com", expectedParams: mss{"demo": "forever"}, expectedHandler: demoH},
+		{input: "this.is.admin.batman.com", expectedParams: mss{"*": "this.is.admin"}, expectedHandler: wildH},
+		{input: "batman.org:8080", expectedParams: mss{"tld": "org", "port": "8080"}, expectedHandler: tldPortH},
 
 		// Port
-		{
-			input: "localhost", expectedParams: emptyParams,
-			expectedHandler: localhostH,
-		},
-		{
-			input: "localhost:1234", expectedParams: emptyParams,
-			expectedHandler: staticPortH,
-		},
-		{
-			input: "localhost:3000", expectedParams: M{"port": "3000"},
-			expectedHandler: portH,
-		},
-		{
-			input: "test.sub.localhost:8080", expectedParams: M{"*": "test.sub", "port": "8080"},
-			expectedHandler: wildSubPortH,
-		},
+		{input: "localhost", expectedParams: emptyParams, expectedHandler: localhostH},
+		{input: "localhost:1234", expectedParams: emptyParams, expectedHandler: staticPortH},
+		{input: "localhost:3000", expectedParams: mss{"port": "3000"}, expectedHandler: portH},
+		{input: "test.sub.localhost:8080", expectedParams: mss{"*": "test.sub", "port": "8080"}, expectedHandler: wildSubPortH},
 
 		// Ipv4
-		{
-			input: "01.02.03.04", expectedParams: emptyParams,
-			expectedHandler: ipv4H,
-		},
-		{
-			input: "01.99.03.04", expectedParams: M{"second": "99"},
-			expectedHandler: ipv4ParamH,
-		},
-		{
-			input: "192.168.03.04", expectedParams: M{"*": "192.168"},
-			expectedHandler: ipv4WildH,
-		},
-		{
-			input: "192.168.03.04:3000", expectedParams: M{"*": "192.168", "port": "3000"},
-			expectedHandler: ipv4WildParamH,
-		},
+		{input: "01.02.03.04", expectedParams: emptyParams, expectedHandler: ipv4H},
+		{input: "01.99.03.04", expectedParams: mss{"second": "99"}, expectedHandler: ipv4ParamH},
+		{input: "192.168.03.04", expectedParams: mss{"*": "192.168"}, expectedHandler: ipv4WildH},
+		{input: "192.168.03.04:3000", expectedParams: mss{"*": "192.168", "port": "3000"}, expectedHandler: ipv4WildParamH},
+
+		// Regex
+		{input: "aaa.regex.org", expectedParams: mss{"sub": "aaa"}, expectedHandler: regex3Chars},
+		{input: "AAA.regex.org", expectedParams: emptyParams, expectedHandler: nil},
+		{input: "aa.regex.org", expectedParams: emptyParams, expectedHandler: nil},
+		{input: "aaaa.regex.org", expectedParams: emptyParams, expectedHandler: nil},
+		{input: "a.regex-dot.org", expectedParams: mss{"sub": "a"}, expectedHandler: regexDot},
+		{input: "b.c.regex-dot.org", expectedParams: mss{"sub": "b.c"}, expectedHandler: regexDot},
+		{input: "123.b.c.regex-dot.org", expectedParams: mss{"sub": "b.c", "n": "123"}, expectedHandler: regexDotN},
+		{input: "1abc23.b.c.regex-dot.org", expectedParams: emptyParams, expectedHandler: nil},
 	}
 
 	for _, test := range tests {
 		req, _ := http.NewRequest("GET", "http://"+test.input, nil)
-		c := NewContext()
+		c := newContext()
 		h := hm.Match(c, req)
+		req = setParamContext(req, c)
 
-		if len(test.expectedParams) != len(c.keys) {
-			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.keys), c.toMap(), test.input)
+		if len(test.expectedParams) != len(c.params) {
+			t.Errorf("Length missmatch: expected %d but got %d (%v) for '%s'", len(test.expectedParams), len(c.params), c.toMap(), test.input)
 		}
 
 		for k, v := range test.expectedParams {
-			actual := Param(c, k)
+			actual := Param(req, k)
 			if actual != v {
 				t.Errorf("Expected key %s to equal %s but got %s for host: %s", cyan(k), green(v), red(actual), test.input)
 			}
@@ -133,6 +113,8 @@ func TestHostMatcher(t *testing.T) {
 			t.Errorf("Handler not match for %s: expected %v but got %v", test.input, fmt.Sprintf("%v", test.expectedHandler), fmt.Sprintf("%v", h))
 		}
 	}
+
+	// fmt.Println(matcher.Print(hm.matcher))
 }
 
 func TestBasicGroupHost(t *testing.T) {
@@ -180,4 +162,24 @@ func TestMountHost(t *testing.T) {
 	test.Get("http://host1.com/second").Do().ExpectStatus(http.StatusNotFound)
 	test.Get("http://host2.com/first").Do().ExpectStatus(http.StatusNotFound)
 	test.Get("http://host2.com/second").Do().ExpectStatus(http.StatusOK)
+}
+
+func TestRaceCondition(t *testing.T) {
+	mux := New()
+	mux.Host("host1.com")
+	mux.Get("/first", fakeHandler())
+
+	second := New()
+	second.Host("host2.com")
+	second.Get("/second", fakeHandler())
+
+	mux.Mount("/", second)
+
+	test := htest.New(t, mux)
+	N := 3
+	for i := 0; i < N; i++ {
+		go func() {
+			test.Get("http://host1.com/first").Do()
+		}()
+	}
 }

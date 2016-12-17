@@ -5,26 +5,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
-
-	"golang.org/x/net/context"
 )
-
-// Wrap converts an http.Handler to returns a Handler
-func Wrap(h http.Handler) Handler {
-	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
-		h.ServeHTTP(w, r)
-	})
-}
-
-// WrapFunc converts an http.HandlerFunc to return a Handler
-func WrapFunc(fn http.HandlerFunc) Handler {
-	return Wrap(http.HandlerFunc(fn))
-}
-
-// UnWrap converts a Handler to an http.Handler
-func UnWrap(h Handler) http.Handler {
-	return HandlerFunc(h.ServeHTTPC)
-}
 
 func cleanPath(p string) string {
 	if p == "" {
@@ -50,4 +31,18 @@ func reverseHostStdLib(pattern string) string {
 		reversed[i], reversed[j] = reversed[j], reversed[i]
 	}
 	return strings.Join(reversed, ".")
+}
+
+func wrap(ctxHandler func(Context)) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		c := C(r)
+		ctxHandler(c)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func unwrap(handler http.Handler) func(Context) {
+	return func(c Context) {
+		handler.ServeHTTP(c, c.Request().WithContext(c))
+	}
 }

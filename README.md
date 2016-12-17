@@ -22,52 +22,55 @@ go get -u gopkg.in/celrenheit/lion.v1
 
 ## Features
 
-* **Context-Aware**: Lion uses the de-facto standard [net/Context](https://golang.org/x/net/context) for storing route params and sharing variables between middlewares and HTTP handlers. It [_could_](https://github.com/golang/go/issues/14660) be integrated in the [standard library](https://github.com/golang/go/issues/13021) for Go 1.7 in 2016.
+* **Go1-like guarantee**: The API will **not** change in Lion v2.x (once released).
 * **Modular**: You can define your own modules to easily build a scalable architecture
-* **REST friendly**: You can define modules to groups http resources together.
-* **Host**: Match hosts. Each host can get its own content.
-* **Zero allocations**: Lion generates zero garbage[*](#benchmarks).
+* **RESTful**: You can define modules to groups http resources together.
+* **Subdomains**: Select which subdomains, hosts a router can match. You can specify it a param or a wildcard e.g. `*.example.org`. More infos [here](#match-hosts).
+* **Near zero garbage**: Lion generates near zero garbage[*](#benchmarks). The allocations generated comes from the net/http.Request.WithContext() works.
+It makes a shallow copy of the request.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of contents
 
-  - [Install/Update](#installupdate)
-  - [Hello World](#hello-world)
-  - [Getting started with modules and resources](#getting-started-with-modules-and-resources)
-  - [Handlers](#handlers)
-    - [Using Handlers](#using-handlers)
-    - [Using HandlerFuncs](#using-handlerfuncs)
-    - [Using native http.Handler](#using-native-httphandler)
-      - [Using native http.Handler with *lion.Wrap()*](#using-native-httphandler-with-lionwrap)
-      - [Using native http.Handler with *lion.WrapFunc()*](#using-native-httphandler-with-lionwrapfunc)
-  - [Middlewares](#middlewares)
-    - [Using Named Middlewares](#using-named-middlewares)
-    - [Using Negroni Middlewares](#using-negroni-middlewares)
-  - [Match Hosts](#match-hosts)
-  - [Resources](#resources)
-  - [Examples](#examples)
-    - [Using GET, POST, PUT, DELETE http methods](#using-get-post-put-delete-http-methods)
-    - [Using middlewares](#using-middlewares)
-    - [Group routes by a base path](#group-routes-by-a-base-path)
-    - [Mounting a router into a base path](#mounting-a-router-into-a-base-path)
-    - [Default middlewares](#default-middlewares)
-- [Custom Middlewares](#custom-middlewares)
+- [Install/Update](#installupdate)
+- [Hello World](#hello-world)
+- [Getting started with modules and resources](#getting-started-with-modules-and-resources)
+  - [Using net/http.Handler](#using-nethttphandler)
+  - [Using net/http.HandlerFunc](#using-nethttphandlerfunc)
+- [Middlewares](#middlewares)
+  - [Using Named Middlewares](#using-named-middlewares)
+  - [Using Third-Party Middlewares](#using-third-party-middlewares)
+    - [Negroni](#negroni)
+- [Matching Subdomains/Hosts](#matching-subdomainshosts)
+- [Resources](#resources)
+- [Examples](#examples)
+  - [Using GET, POST, PUT, DELETE http methods](#using-get-post-put-delete-http-methods)
+  - [Using middlewares](#using-middlewares)
+  - [Group routes by a base path](#group-routes-by-a-base-path)
+  - [Mounting a router into a base path](#mounting-a-router-into-a-base-path)
+  - [Default middlewares](#default-middlewares)
+  - [Custom Middlewares](#custom-middlewares)
     - [Custom Logger example](#custom-logger-example)
-  - [Benchmarks](#benchmarks)
-  - [License](#license)
-  - [Todo](#todo)
-  - [Credits](#credits)
+- [Benchmarks](#benchmarks)
+- [Contributing](#contributing)
+- [License](#license)
+- [Todo](#todo)
+- [Credits](#credits)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
 ## Install/Update
 
+Lion requires Go 1.7+:
+
 ```shell
 $ go get -u gopkg.in/celrenheit/lion.v1
 ```
 
+Next versions of Lion will support the latest Go version and the previous one. 
+For example, when Go 1.8 is out, Lion will support Go 1.7 and Go 1.8.
 
 ## Hello World
 
@@ -79,16 +82,16 @@ import (
 	"net/http"
 
 	"github.com/celrenheit/lion"
-	"golang.org/x/net/context"
+	"context"
 )
 
-func Home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func Home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func Hello(c context.Context, w http.ResponseWriter, r *http.Request) {
-	name := lion.Param(c, "name")
-	fmt.Fprintf(w, "Hello "+name)
+func Hello(w http.ResponseWriter, r *http.Request) {
+	name := lion.Param(r, "name")
+	fmt.Fprintf(w, "Hello %s!",name)
 }
 
 func main() {
@@ -126,11 +129,11 @@ func (p Products) Base() string {
 	return "/products"
 }
 
-func (p Products) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p Products) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Fetching all products")
 }
 
-func (p Products) Post(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (p Products) Post(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Creating a new product")
 }
 
@@ -143,18 +146,18 @@ func (p Products) Routes(r *lion.Router) {
 // It handles getting, editing and deleting a single product
 type OneProduct struct{}
 
-func (p OneProduct) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p OneProduct) Get(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Getting product: %s", id)
 }
 
-func (p OneProduct) Put(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p OneProduct) Put(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Updating article: %s", id)
 }
 
-func (p OneProduct) Delete(c context.Context, w http.ResponseWriter, r *http.Request) {
-	id := lion.Param(c, "id")
+func (p OneProduct) Delete(w http.ResponseWriter, r *http.Request) {
+	id := lion.Param(r, "id")
 	fmt.Fprintf(w, "Deleting article: %s", id)
 }
 ```
@@ -166,17 +169,10 @@ $ go run examples/modular-hello/modular-hello.go
 
 Open your web browser to [http://localhost:3000/api/products](http://localhost:3000/api/products) or [http://localhost:3000/api/products/123](http://localhost:3000/api/products/123). You should see "_Fetching all products_" or "_Getting product: 123_".
 
-## Handlers
 
-Handlers should implement the Handler interface:
+### Using net/http.Handler
 
-```go
-type Handler interface {
-	ServeHTTPC(context.Context, http.ResponseWriter, *http.Request)
-}
-```
-
-### Using Handlers
+Handlers should implement the native net/http.Handler:
 
 ```go
 l.Get("/get", get)
@@ -185,61 +181,19 @@ l.Put("/put", put)
 l.Delete("/delete", delete)
 ```
 
-### Using HandlerFuncs
+### Using net/http.HandlerFunc
 
-HandlerFuncs shoud have this function signature:
+You can use native net/http.Handler (`func(w http.ResponseWriter, r *http.Request)`):
 
 ```go
-func handlerFunc(c context.Context, w http.ResponseWriter, r *http.Request)  {
+func myHandlerFunc(w http.ResponseWriter, r *http.Request)  {
   fmt.Fprintf(w, "Hi!")
 }
 
-l.GetFunc("/get", handlerFunc)
-l.PostFunc("/post", handlerFunc)
-l.PutFunc("/put", handlerFunc)
-l.DeleteFunc("/delete", handlerFunc)
-```
-
-
-### Using native http.Handler
-
-```go
-type nativehandler struct {}
-
-func (_ nativehandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-}
-
-l.GetH("/somepath", nativehandler{})
-l.PostH("/somepath", nativehandler{})
-l.PutH("/somepath", nativehandler{})
-l.DeleteH("/somepath", nativehandler{})
-```
-
-#### Using native http.Handler with *lion.Wrap()*
-
-*Note*: using native http handler you cannot access url params.
-
-```go
-
-func main() {
-	l := lion.New()
-	l.Get("/somepath", lion.Wrap(nativehandler{}))
-}
-```
-
-#### Using native http.Handler with *lion.WrapFunc()*
-
-
-```go
-func getHandlerFunc(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func main() {
-	l := lion.New()
-	l.Get("/somepath", lion.WrapFunc(getHandlerFunc))
-}
+l.GetFunc("/get", myHandlerFunc)
+l.PostFunc("/post", myHandlerFunc)
+l.PutFunc("/put", myHandlerFunc)
+l.DeleteFunc("/delete", myHandlerFunc)
 ```
 
 ## Middlewares
@@ -248,13 +202,15 @@ Middlewares should implement the Middleware interface:
 
 ```go
 type Middleware interface {
-	ServeNext(Handler) Handler
+	ServeNext(http.Handler) http.Handler
 }
 ```
 
-The ServeNext function accepts a Handler and returns a Handler.
+The ServeNext function accepts a http.Handler and returns a http.Handler.
 
-You can also use MiddlewareFuncs. For example:
+You can also use MiddlewareFuncs which are basically just `func(http.Handler) http.Handler` 
+
+For example:
 
 ```go
 func middlewareFunc(next Handler) Handler  {
@@ -272,7 +228,8 @@ l := lion.New()
 l.Define("EnsureAuthenticated", NewEnsureAuthenticatedMiddleware())
 ```
 
-To reuse it later in your application, you can use the `UseNamed` method. If it cannot find the named middleware if the current Router instance it will try to find it in the parent router.
+To reuse it later in your application, you can use the `UseNamed` method. 
+If it cannot find the named middleware if the current Router instance it will try to find it in the parent router.
 If a named middleware is not found it will panic.
 
 ```go
@@ -280,17 +237,26 @@ api := l.Group("/api")
 api.UseNamed("EnsureAuthenticated")
 ```
 
-### Using Negroni Middlewares
+### Using Third-Party Middlewares
 
-You can use [Negroni](https://github.com/codegangsta/negroni) middlewares you can find a list of third party middlewares [here](https://github.com/codegangsta/negroni#third-party-middleware)
+#### Negroni 
+
+In v1, negroni was supported directly using UseNegroni.
+It still works but you will have to use .UseNext and pass it a [negroni.HandlerFunc](https://godoc.org/github.com/urfave/negroni#HandlerFunc): 
+`func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)`
+
+This way if you prefer to use this kind of middleware, you can.
+
+You can use [Negroni](https://github.com/codegangsta/negroni) middlewares
+you can find a list of third party middlewares [here](https://github.com/codegangsta/negroni#third-party-middleware)
 
 ```go
 l := lion.New()
-l.UseNegroni(negroni.NewRecovery())
+l.UseNext(negroni.NewRecovery().ServeHTTP)
 l.Run()
 ```
 
-## Matching Hosts
+## Matching Subdomains/Hosts
 
 You can match a specific or multiple hosts. You can use patterns in the same way they are currently used for routes with only some [edge cases](https://godoc.org/github.com/celrenheit/lion#Router.Host).
 The main difference is that you will have to use the '**$**' character instead of '**:**' to define a parameter.
@@ -340,10 +306,10 @@ DeleteMiddlewares() Middlewares
 
 
 // HandlerFuncs for each HTTP Methods (Optional)
-Get(c context.Context, w http.ResponseWriter, r *http.Request)
-Post(c context.Context, w http.ResponseWriter, r *http.Request)
-Put(c context.Context, w http.ResponseWriter, r *http.Request)
-Delete(c context.Context, w http.ResponseWriter, r *http.Request)
+Get(w http.ResponseWriter, r *http.Request)
+Post(w http.ResponseWriter, r *http.Request)
+Put(w http.ResponseWriter, r *http.Request)
+Delete(w http.ResponseWriter, r *http.Request)
 ```
 
 **_Example_**:
@@ -357,7 +323,7 @@ func (t todolist) Uses() lion.Middlewares {
 	return lion.Middlewares{lion.NewLogger()}
 }
 
-func (t todolist) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t todolist) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "getting todos")
 }
 
@@ -402,12 +368,12 @@ func (t api) Routes(r *lion.Router) {
 
 // Optional: Attach Get method to this Module.
 // ====> A Module is also a Resource.
-func (t api) Get(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t api) Get(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This also a resource accessible at http://localhost:3000/api")
 }
 
 // Optional: Defining custom routes
-func (t api) CustomRoute(c context.Context, w http.ResponseWriter, r *http.Request) {
+func (t api) CustomRoute(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This a custom route for this module http://localhost:3000/api/")
 }
 
@@ -505,7 +471,7 @@ func main()  {
 }
 ```
 
-# Custom Middlewares
+### Custom Middlewares
 
 Custom middlewares should implement the Middleware interface:
 
@@ -522,13 +488,13 @@ func(next Handler) Handler
 ```
 
 
-### Custom Logger example
+#### Custom Logger example
 
 ```go
 type logger struct{}
 
 func (*logger) ServeNext(next lion.Handler) lion.Handler {
-	return lion.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	return lion.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		next.ServeHTTPC(c, w, r)
@@ -550,49 +516,18 @@ l.Run()
 
 ## Benchmarks
 
-Without path cleaning
+TODO: Update this when v2 is released.
 
-```
-BenchmarkLion_Param       	10000000	       164 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Param5      	 5000000	       372 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Param20     	 1000000	      1080 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParamWrite  	10000000	       180 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubStatic	10000000	       160 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubParam 	 5000000	       359 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubAll   	   30000	     62888 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusStatic 	20000000	       104 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusParam  	10000000	       182 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlus2Params	 5000000	       286 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusAll    	  500000	      3227 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseStatic 	10000000	       123 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseParam  	10000000	       145 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Parse2Params	10000000	       212 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseAll    	  300000	      5242 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_StaticAll   	   50000	     37998 ns/op	       0 B/op	       0 allocs/op
-```
+## Contributing
 
-With path cleaning
+Want to contribute to Lion ? Awesome! Feel free to submit an issue or a pull request.
 
-```
-BenchmarkLion_Param       	10000000	       227 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Param5      	 3000000	       427 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Param20     	 1000000	      1321 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParamWrite  	 5000000	       256 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubStatic	10000000	       214 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubParam 	 3000000	       445 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GithubAll   	   20000	     88664 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusStatic 	10000000	       122 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusParam  	 5000000	       381 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlus2Params	 5000000	       409 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_GPlusAll    	  500000	      3952 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseStatic 	10000000	       146 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseParam  	10000000	       187 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_Parse2Params	 5000000	       314 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_ParseAll    	  200000	      7857 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLion_StaticAll   	   30000	     56170 ns/op	      96 B/op	       8 allocs/op
-```
-
-A more in depth benchmark with a comparison with other frameworks is coming soon.
+Here are some ways you can help:
+* Report bugs
+* Share a middleware or a module
+* Improve code/documentation
+* Propose new features
+* and more...
 
 ## License
 
@@ -610,10 +545,13 @@ https://github.com/celrenheit/lion/blob/master/LICENSE
 
 ## Credits
 
-* @codegangsta for https://github.com/codegangsta/negroni
+Lion v1 was inspired by [pressly/chi](https://github.com/pressly/chi). 
+If Lion is not the right http router for you, check out chi.
+
+Parts of Lion taken for other projects:
+* [Negroni](https://github.com/codegangsta/negroni)
 	* Static and Recovery middlewares are taken from Negroni
-* @zenazn for https://github.com/zenazn/goji/
+* [Goji](https://github.com/zenazn/goji/)
 	* RealIP middleware is taken from goji
-* @pkieltyka for https://github.com/pressly/chi and @armon for https://github.com/armon/go-radix
-  * Radix tree matcher implementation is inspired by both of these packages
-* https://github.com/gin-gonic/gin for ResponseWriter and Logger inspiration
+* [Gin](https://github.com/gin-gonic/gin)
+	* ResponseWriter and Logger inspiration are inspired by gin

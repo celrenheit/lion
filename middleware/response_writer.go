@@ -1,4 +1,4 @@
-package lion
+package middleware
 
 import (
 	"bufio"
@@ -20,7 +20,7 @@ type ResponseWriter interface {
 }
 
 // WrapResponseWriter wraps an http.ResponseWriter and returns a ResponseWriter
-func WrapResponseWriter(w http.ResponseWriter) ResponseWriter {
+func wrapResponseWriter(w http.ResponseWriter) ResponseWriter {
 	return &basicWriter{ResponseWriter: w}
 }
 

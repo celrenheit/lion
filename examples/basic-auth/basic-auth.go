@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/celrenheit/lion"
-	"golang.org/x/net/context"
+	"github.com/celrenheit/lion/middleware"
 )
 
 const basicAuthPrefix = "Basic "
@@ -16,12 +16,12 @@ const basicAuthPrefix = "Basic "
 var user = []byte("lion")
 var pass = []byte("argh")
 
-func home(c context.Context, w http.ResponseWriter, r *http.Request) {
+func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Home")
 }
 
-func basicAuthMiddleware(next lion.Handler) lion.Handler {
-	return lion.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+func basicAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
 		if strings.HasPrefix(auth, basicAuthPrefix) {
@@ -34,7 +34,7 @@ func basicAuthMiddleware(next lion.Handler) lion.Handler {
 					bytes.Equal(pair[1], pass) {
 
 					// Delegate request to the given handle
-					next.ServeHTTPC(c, w, r)
+					next.ServeHTTP(w, r)
 					return
 				}
 			}
@@ -46,12 +46,12 @@ func basicAuthMiddleware(next lion.Handler) lion.Handler {
 	})
 }
 
-func protectedHome(c context.Context, w http.ResponseWriter, r *http.Request) {
+func protectedHome(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Connected to the protected home")
 }
 
 func main() {
-	l := lion.Classic()
+	l := lion.New(middleware.Classic())
 	l.GetFunc("/", home)
 
 	g := l.Group("/protected")

@@ -3,9 +3,8 @@ package lion
 import (
 	"net/http"
 	"strings"
-	"sync"
 
-	"github.com/celrenheit/lion/matcher"
+	"github.com/celrenheit/lion/internal/matcher"
 )
 
 const (
@@ -15,16 +14,20 @@ const (
 
 type hostMatcher struct {
 	matcher   matcher.Matcher
-	defaultRM RegisterMatcher
+	defaultRM registerMatcher
 	multihost bool
 }
 
 func newHostMatcher() *hostMatcher {
 	cfg := &matcher.Config{
-		ParamChar:        '$',
-		WildcardChar:     '*',
-		Separators:       ".:",
-		GetSetterCreator: &hscreator{},
+		ParamChar:    '$',
+		WildcardChar: '*',
+		Separators:   ".:",
+		New: func() matcher.Store {
+			return &hostStore{
+				rm: newPathMatcher(),
+			}
+		},
 		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
@@ -33,11 +36,7 @@ func newHostMatcher() *hostMatcher {
 	}
 }
 
-type registererRMGrabber struct {
-	rm RegisterMatcher
-}
-
-func (hm *hostMatcher) Register(pattern string) RegisterMatcher {
+func (hm *hostMatcher) Register(pattern string) registerMatcher {
 	host := pattern
 
 	// Switch to multihost
@@ -51,20 +50,19 @@ func (hm *hostMatcher) Register(pattern string) RegisterMatcher {
 		if host == "" {
 			host = defaultAnyHostPattern
 		}
-
-		rg := &registererRMGrabber{}
+		hs := &hostStore{}
 		reversedHost := reverseHost(host)
-		hm.matcher.Set(reversedHost, rg, nil)
-		return rg.rm
-	} else {
-		return hm.defaultRM
+		hs = hm.matcher.Set(reversedHost, hs, nil).(*hostStore)
+		return hs.rm
 	}
+
+	return hm.defaultRM
 }
 
-func (hm *hostMatcher) Match(c *Context, req *http.Request) Handler {
+func (hm *hostMatcher) Match(c *ctx, req *http.Request) http.Handler {
 	if hm.multihost {
 		reversedHost := reverseHost(req.Host)
-		value := hm.matcher.GetWithContext(c, reversedHost, nil)
+		value, _ := hm.matcher.GetWithContext(c, reversedHost, nil)
 		// Delete wildcard param
 		// TODO: Skip this step for performance reasons
 		// (Maybe by adding a blacklisted or skiplisted params on host matcher)
@@ -72,7 +70,7 @@ func (hm *hostMatcher) Match(c *Context, req *http.Request) Handler {
 			c.Remove(defaultAnyHostKey)
 		}
 
-		if rm, ok := value.(RegisterMatcher); ok {
+		if rm, ok := value.(registerMatcher); ok {
 			_, h := rm.Match(c, req)
 			return h
 		}
@@ -84,18 +82,13 @@ func (hm *hostMatcher) Match(c *Context, req *http.Request) Handler {
 }
 
 type hostStore struct {
-	rm RegisterMatcher
+	rm registerMatcher
 }
 
 func (hs *hostStore) Set(value interface{}, tags matcher.Tags) {
 	// Overwrite RegisterMatcher
-	if rm, ok := value.(RegisterMatcher); ok {
+	if rm, ok := value.(registerMatcher); ok {
 		hs.rm = rm
-	}
-
-	// Little hack to grab the pointer of the underlying RegisterMatcher
-	if rg, ok := value.(*registererRMGrabber); ok {
-		rg.rm = hs.rm
 	}
 }
 
@@ -103,57 +96,50 @@ func (hs *hostStore) Get(tags matcher.Tags) interface{} {
 	return hs.rm
 }
 
-type hscreator struct{}
-
-func (c *hscreator) New() matcher.GetSetter {
-	return &hostStore{
-		rm: newPathMatcher(),
-	}
-}
-
-type hostParamTransformer struct {
-	splittedStringPool sync.Pool
-}
+type hostParamTransformer struct{}
 
 func newHostParamTransformer() *hostParamTransformer {
-	return &hostParamTransformer{
-		splittedStringPool: sync.Pool{
-			New: func() interface{} {
-				return &splittedStringItem{}
-			},
-		},
-	}
+	return &hostParamTransformer{}
 }
 
 func (hpt *hostParamTransformer) Transform(input string) string {
-	reversedItem := hpt.split(input, ".")
-	reversed := reversedItem.slice
+	// Split host based on '.' character
+	reversed := hpt.split(input, ".")
+
+	// Split and reverse each host parts if it has a port character ':'
+	portPart := reversed[len(reversed)-1]
+	if strings.Contains(portPart, ":") {
+		splitted := strings.Split(portPart, ":")
+		splitted[0], splitted[1] = splitted[1], splitted[0]
+		reversed[len(reversed)-1] = strings.Join(splitted, ":")
+	}
+
 	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
 		reversed[i], reversed[j] = reversed[j], reversed[i]
 	}
+
 	output := strings.Join(reversed, ".")
-	hpt.splittedStringPool.Put(reversedItem)
 	return output
 }
 
 // Taken from Go's standard library
 // https://github.com/golang/go/blob/master/src/strings/strings.go#L237-L261
-func (hpt *hostParamTransformer) split(s, sep string) *splittedStringItem {
-	si := hpt.splittedStringPool.Get().(*splittedStringItem)
+func (hpt *hostParamTransformer) split(s, sep string) []string {
+	slice := []string{}
 	n := strings.Count(s, sep) + 1
 	c := sep[0]
 	start := 0
 
 	var a []string
-	if cap(si.slice) == n {
-		a = si.slice
+	if cap(slice) == n {
+		a = slice
 	} else {
 		a = make([]string, n)
 	}
 
 	na := 0
 	for i := 0; i+len(sep) <= len(s) && na+1 < n; i++ {
-		if s[i] == c && (len(sep) == 1 || s[i:i+len(sep)] == sep) {
+		if s[i] == c && (len(sep) == 1 || s[i:i+len(sep)] == sep) && (i == 0 || s[i-1] != '\\') {
 			a[na] = s[start:i]
 			na++
 			start = i + len(sep)
@@ -161,12 +147,8 @@ func (hpt *hostParamTransformer) split(s, sep string) *splittedStringItem {
 		}
 	}
 	a[na] = s[start:]
-	si.slice = a[0 : na+1]
-	return si
-}
-
-type splittedStringItem struct {
-	slice []string
+	slice = a[0 : na+1]
+	return slice
 }
 
 var hostReverser = newHostParamTransformer()

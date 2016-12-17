@@ -3,10 +3,22 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "2fgA64ELeBzGxVUg8trxwCX+5es=",
+			"checksumSHA1": "7THUh5NoTEIWhFL5KmQ27dPq8p8=",
 			"path": "github.com/celrenheit/htest",
-			"revision": "356d2d8fe92d82014ee46bfc684d039de5009678",
-			"revisionTime": "2016-04-21T00:34:24Z"
+			"revision": "6d71ed190d1c9610d25a0ff36d3f60bce1768be2",
+			"revisionTime": "2016-11-12T23:15:57Z"
+		},
+		{
+			"checksumSHA1": "2Fy1Y6Z3lRRX1891WF/+HT4XS2I=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "9ed569b5d1ac936e6494082958d63a6aa4fff99a",
+			"revisionTime": "2016-11-01T19:39:35Z"
+		},
+		{
+			"checksumSHA1": "9Xy4JjEsr+Mu4v4eE9KA0TItfQU=",
+			"path": "github.com/dgrijalva/jwt-go/request",
+			"revision": "9ed569b5d1ac936e6494082958d63a6aa4fff99a",
+			"revisionTime": "2016-11-01T19:39:35Z"
 		},
 		{
 			"checksumSHA1": "U3c1xAnpa/oQtfsCx4lLEX5vDbs=",
@@ -25,6 +37,12 @@
 			"path": "github.com/mattn/go-isatty",
 			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639",
 			"revisionTime": "2015-12-11T00:06:21Z"
+		},
+		{
+			"checksumSHA1": "i8Yom1KrpDKwjlGH/gpJGAQmo68=",
+			"path": "github.com/nats-io/nuid",
+			"revision": "289cccf02c178dc782430d534e3c1f5b72af807f",
+			"revisionTime": "2016-09-27T04:49:45Z"
 		},
 		{
 			"checksumSHA1": "opkzPE4MDhLRhmkSJais/qYb2+M=",
