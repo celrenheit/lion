@@ -41,6 +41,8 @@ type Router struct {
 
 	notFoundHandler http.Handler
 	pool            sync.Pool
+
+	logger *log.Logger
 }
 
 // New creates a new router instance
@@ -53,6 +55,7 @@ func New(mws ...Middleware) *Router {
 		pool:             newCtxPool(),
 	}
 	r.Use(mws...)
+	r.WithOptions(WithLogger(lionLogger))
 	return r
 }
 
@@ -495,8 +498,8 @@ func (r *Router) Run(addr ...string) {
 		a = addr[0]
 	}
 
-	lionLogger.Printf("listening on %s", a)
-	lionLogger.Fatal(http.ListenAndServe(a, r))
+	r.logger.Printf("listening on %s", a)
+	r.logger.Fatal(http.ListenAndServe(a, r))
 }
 
 // RunTLS calls http.ListenAndServeTLS for the current router
@@ -504,8 +507,8 @@ func (r *Router) Run(addr ...string) {
 // 	r := New()
 // 	r.RunTLS(":3443", "cert.pem", "key.pem")
 func (r *Router) RunTLS(addr, certFile, keyFile string) {
-	lionLogger.Printf("listening on %s", addr)
-	lionLogger.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, r))
+	r.logger.Printf("listening on %s", addr)
+	r.logger.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, r))
 }
 
 // Define registers some middleware using a name for reuse later using UseNamed method.
@@ -565,4 +568,21 @@ func (r *Router) Routes() Routes {
 	}
 
 	return routes
+}
+
+// RouterOption configure a Router
+type RouterOption func(*Router)
+
+// WithLogger allows to customize the underlying logger
+func WithLogger(logger *log.Logger) RouterOption {
+	return func(router *Router) {
+		router.logger = logger
+	}
+}
+
+// WithOptions allows to customize a Router using RouterOption
+func (r *Router) WithOptions(opts ...RouterOption) {
+	for _, o := range opts {
+		o(r)
+	}
 }
