@@ -55,7 +55,7 @@ func New(mws ...Middleware) *Router {
 		pool:             newCtxPool(),
 	}
 	r.Use(mws...)
-	r.WithOptions(WithLogger(lionLogger))
+	r.Configure(WithLogger(lionLogger))
 	return r
 }
 
@@ -580,8 +580,8 @@ func WithLogger(logger *log.Logger) RouterOption {
 	}
 }
 
-// WithOptions allows to customize a Router using RouterOption
-func (r *Router) WithOptions(opts ...RouterOption) {
+// Configure allows you to customize a Router using RouterOption
+func (r *Router) Configure(opts ...RouterOption) {
 	for _, o := range opts {
 		o(r)
 	}
