@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -42,7 +43,9 @@ type Router struct {
 	notFoundHandler http.Handler
 	pool            sync.Pool
 
+	// Configuration
 	logger *log.Logger
+	server *http.Server
 }
 
 // New creates a new router instance
@@ -55,7 +58,13 @@ func New(mws ...Middleware) *Router {
 		pool:             newCtxPool(),
 	}
 	r.Use(mws...)
-	r.Configure(WithLogger(lionLogger))
+	r.Configure(
+		WithLogger(lionLogger),
+		WithServer(&http.Server{
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		}),
+	)
 	return r
 }
 
@@ -499,7 +508,9 @@ func (r *Router) Run(addr ...string) {
 	}
 
 	r.logger.Printf("listening on %s", a)
-	r.logger.Fatal(http.ListenAndServe(a, r))
+	r.server.Addr = a
+	r.server.Handler = r
+	r.logger.Fatal(r.server.ListenAndServe())
 }
 
 // RunTLS calls http.ListenAndServeTLS for the current router
@@ -577,6 +588,14 @@ type RouterOption func(*Router)
 func WithLogger(logger *log.Logger) RouterOption {
 	return func(router *Router) {
 		router.logger = logger
+	}
+}
+
+// WithServer allows to customize the underlying http.Server
+// Note: when using Run() the handler and the address will change
+func WithServer(server *http.Server) RouterOption {
+	return func(router *Router) {
+		router.server = server
 	}
 }
 
