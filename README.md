@@ -2,8 +2,6 @@
 
 Lion is a [fast](#benchmarks) HTTP router for building modern scalable modular REST APIs written in Go (golang).
 
-![Lion's Hello World GIF](https://raw.githubusercontent.com/celrenheit/gifs/master/lion/hello-speed2-sm.min.gif)
-
 ## Features
 
 * **Go1-like guarantee**: The API will **not** change in Lion v2.x (once released).
