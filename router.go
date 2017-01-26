@@ -40,12 +40,12 @@ type Router struct {
 	host   string
 	hostrm *hostMatcher
 
-	notFoundHandler http.Handler
-	pool            sync.Pool
+	pool sync.Pool
 
 	// Configuration
-	logger *log.Logger
-	server *http.Server
+	logger          *log.Logger
+	server          *http.Server
+	notFoundHandler http.Handler
 }
 
 // New creates a new router instance
@@ -444,11 +444,6 @@ func (r *Router) notFound(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// NotFoundHandler gives the ability to use a specific 404 NOT FOUND handler
-func (r *Router) NotFoundHandler(handler http.Handler) {
-	r.notFoundHandler = handler
-}
-
 // ServeFiles serves files located in root http.FileSystem
 //
 // This can be used as shown below:
@@ -596,6 +591,13 @@ func WithLogger(logger *log.Logger) RouterOption {
 func WithServer(server *http.Server) RouterOption {
 	return func(router *Router) {
 		router.server = server
+	}
+}
+
+// WithNotFoundHandler override the default not found handler
+func WithNotFoundHandler(h http.Handler) RouterOption {
+	return func(router *Router) {
+		router.notFoundHandler = h
 	}
 }
 
