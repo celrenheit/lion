@@ -502,9 +502,9 @@ func (r *Router) Run(addr ...string) {
 		a = addr[0]
 	}
 
-	r.logger.Printf("listening on %s", a)
 	r.server.Addr = a
 	r.server.Handler = r
+	r.logger.Printf("listening on %s", a)
 	r.logger.Fatal(r.server.ListenAndServe())
 }
 
@@ -513,8 +513,10 @@ func (r *Router) Run(addr ...string) {
 // 	r := New()
 // 	r.RunTLS(":3443", "cert.pem", "key.pem")
 func (r *Router) RunTLS(addr, certFile, keyFile string) {
-	r.logger.Printf("listening on %s", addr)
-	r.logger.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, r))
+	r.server.Addr = addr
+	r.server.Handler = r
+	r.logger.Printf("listening tls on %s", addr)
+	r.logger.Fatal(r.server.ListenAndServeTLS(certFile, keyFile))
 }
 
 // Define registers some middleware using a name for reuse later using UseNamed method.
