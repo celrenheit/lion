@@ -513,7 +513,9 @@ Here are some ways you can help:
 
 ## License
 
-https://github.com/celrenheit/lion/blob/master/LICENSE
+The project is licensed under the MIT license available here: https://github.com/celrenheit/lion/blob/master/LICENSE.
+
+The benchmarks present in _bench\_test.go_ is licensed under a BSD-style license available here: https://github.com/julienschmidt/go-http-routing-benchmark/blob/master/LICENSE.
 
 ## Todo
 
