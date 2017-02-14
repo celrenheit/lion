@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/celrenheit/lion/internal/matcher"
 )
@@ -65,7 +66,6 @@ type Context interface {
 
 // Context implements context.Context and stores values of url parameters
 type ctx struct {
-	context.Context
 	http.ResponseWriter
 
 	parent context.Context
@@ -113,6 +113,18 @@ func (c *ctx) Value(key interface{}) interface{} {
 	}
 
 	return c.parent.Value(key)
+}
+
+func (c *ctx) Deadline() (deadline time.Time, ok bool) {
+	return c.parent.Deadline()
+}
+
+func (c *ctx) Done() <-chan struct{} {
+	return c.parent.Done()
+}
+
+func (c *ctx) Err() error {
+	return c.parent.Err()
 }
 
 func (c *ctx) AddParam(key, val string) {
