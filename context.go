@@ -288,7 +288,7 @@ func (c *ctx) Redirect(urlStr string) error {
 
 func (c *ctx) Reset() {
 	c.params = c.params[:0]
-	c.parent = nil
+	c.parent = context.Background()
 	c.req = nil
 	c.ResponseWriter = nil
 	c.code = 0
