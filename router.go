@@ -130,6 +130,7 @@ func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 // If it is not found it calls the NotFound handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := r.pool.Get().(*ctx)
+	ctx.Reset()
 	ctx.parent = req.Context()
 	ctx.ResponseWriter = w
 	ctx.req = req
@@ -143,7 +144,6 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		r.notFound(w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
 
-	ctx.Reset()
 	r.pool.Put(ctx)
 }
 
