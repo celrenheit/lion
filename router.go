@@ -40,8 +40,6 @@ type Router struct {
 	host   string
 	hostrm *hostMatcher
 
-	pool sync.Pool
-
 	// Configuration
 	logger          *log.Logger
 	server          *http.Server
@@ -55,7 +53,6 @@ func New(mws ...Middleware) *Router {
 		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
-		pool:             newCtxPool(),
 	}
 	r.Use(mws...)
 	r.Configure(
@@ -80,7 +77,6 @@ func (r *Router) Subrouter(mws ...Middleware) *Router {
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
 		host:             r.host,
-		pool:             newCtxPool(),
 		routes:           []*route{},
 		subrouters:       []*Router{},
 	}
@@ -129,11 +125,7 @@ func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 // ServeHTTP finds the handler associated with the request's path.
 // If it is not found it calls the NotFound handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := r.pool.Get().(*ctx)
-	ctx.Reset()
-	ctx.parent = req.Context()
-	ctx.ResponseWriter = w
-	ctx.req = req
+	ctx := newContextWithResReq(req.Context(), w, req)
 
 	if h := r.root().hostrm.Match(ctx, req); h != nil {
 		// We set the context only if there is a match
@@ -143,8 +135,6 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	} else {
 		r.notFound(w, req) // r.middlewares.BuildHandler(HandlerFunc(r.NotFound)).ServeHTTPC
 	}
-
-	r.pool.Put(ctx)
 }
 
 // Mount mounts a subrouter at the provided pattern
