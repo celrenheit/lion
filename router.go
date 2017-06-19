@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 // HTTP methods constants
@@ -469,8 +467,7 @@ func (r *Router) ServeFile(base, path string) {
 }
 
 var (
-	lionColor  = color.New(color.Italic, color.FgHiGreen).SprintFunc()
-	lionLogger = log.New(os.Stdout, lionColor("[lion]")+" ", log.Ldate|log.Ltime)
+	lionLogger = log.New(os.Stdout, "[lion] ", log.Ldate|log.Ltime)
 )
 
 // Run calls http.ListenAndServe for the current router.
