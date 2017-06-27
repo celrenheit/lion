@@ -103,7 +103,7 @@ func (r *Router) Group(pattern string, mws ...Middleware) *Router {
 // Handle is the underling method responsible for registering a handler for a specific method and pattern.
 func (r *Router) Handle(method, pattern string, handler http.Handler) Route {
 	var p string
-	if !r.isRoot() && pattern == "/" && r.pattern != "" {
+	if pattern == "/" && r.pattern != "" {
 		p = r.pattern
 	} else {
 		p = r.pattern + pattern
@@ -146,9 +146,9 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // Mount mounts a subrouter at the provided pattern
-func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
-	router.parent = r
-	r.subrouters = append(r.subrouters, router)
+func (r *Router) Mount(pattern string, sub *Router, mws ...Middleware) {
+	oldp := r.pattern
+	host := r.host
 
 	var p string
 	if pattern == "/" {
@@ -156,19 +156,17 @@ func (r *Router) Mount(pattern string, router *Router, mws ...Middleware) {
 	} else {
 		p = r.pattern + pattern
 	}
-	router.pattern = p
+	r.pattern = p
 
-	host := r.host
-	for i, route := range router.routes {
-		router.Host(route.Host())
+	for _, route := range sub.routes {
+		r.Host(route.Host())
 		for _, method := range route.Methods() {
-			router.Handle(method, route.Pattern(), route.Handler(method))
+			r.Handle(method, route.Pattern(), route.Handler(method))
 		}
-
-		router.routes = append(router.routes[:i], router.routes[i+1:]...)
 	}
-	// Restore previous host
+	// Restore previous host and pattern
 	r.host = host
+	r.pattern = oldp
 }
 
 func newCtxPool() sync.Pool {

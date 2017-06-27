@@ -669,6 +669,44 @@ func TestUSEContext(t *testing.T) {
 		ExpectHeader("FOO", "BAR")
 }
 
+// Issue #20
+func TestMountingIssue20(t *testing.T) {
+	l := New()
+
+	sub := New()
+	//normal return
+	sub.GET("/", func(ctx Context) {
+		ctx.Write([]byte("/"))
+	})
+
+	//404 page not found ？
+	sub.GET("/a", func(ctx Context) {
+		ctx.Write([]byte("a"))
+	})
+	//normal return
+	sub.GET("/b", func(ctx Context) {
+		ctx.Write([]byte("b"))
+	})
+
+	//404 page not found ？
+	sub.GET("/c", func(ctx Context) {
+		ctx.Write([]byte("c"))
+	})
+	//normal return
+	sub.GET("/d", func(ctx Context) {
+		ctx.Write([]byte("d"))
+	})
+
+	l.Mount("/api", sub)
+
+	test := htest.New(t, l)
+	test.Get("/api").Do().ExpectStatus(http.StatusOK)
+	test.Get("/api/a").Do().ExpectStatus(http.StatusOK)
+	test.Get("/api/b").Do().ExpectStatus(http.StatusOK)
+	test.Get("/api/c").Do().ExpectStatus(http.StatusOK)
+	test.Get("/api/d").Do().ExpectStatus(http.StatusOK)
+}
+
 func catchPanic(fn func()) (recv interface{}) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -87,6 +87,7 @@ func TestGetRoutesSubrouter(t *testing.T) {
 	}
 
 	lv2.Get("/categories", fakeHandler())
+	l.Mount("/v2", lv2)
 	got = len(l.Routes())
 	if got != 8 {
 		t.Errorf("Number of routes should be 8 but got %d: %v", got, l.Routes())
