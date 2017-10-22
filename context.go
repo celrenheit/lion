@@ -332,7 +332,7 @@ func Param(req *http.Request, key string) string {
 
 func setParamContext(req *http.Request, c *ctx) *http.Request {
 	c.parent = req.Context()
-	return req.WithContext(c)
+	return req.WithContext(context.WithValue(req.Context(), ctxKey, c))
 }
 
 type parameter struct {
