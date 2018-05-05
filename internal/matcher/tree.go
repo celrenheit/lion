@@ -92,7 +92,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 	searchHistory := c.SearchHistory()
 	for {
 
-		if search == "" && n.store != nil {
+		if search == "" && n.store != nil && (tree.cfg.EnableAutomaticOptions || tree.isLeaf(n, tags)) {
 			out = n
 			break
 		}
@@ -202,7 +202,7 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 		// We go back to the parent node and the previous search path.
 		// We then jump to the parent's wildcard node.
 		// If there was a previously registered param in the previous param node, we remove it.
-		if search != "" && n.parent != nil {
+		if (search != "" || (!tree.cfg.EnableAutomaticOptions && !tree.isLeaf(n, tags))) && n.parent != nil {
 			// Walk back up the tree to find if there is a wildcard node
 			for n.anyChild == nil && n.parent != nil && len(searchHistory) > 0 {
 				prevparam := n.pname

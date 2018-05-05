@@ -18,21 +18,21 @@ type hostMatcher struct {
 	multihost bool
 }
 
-func newHostMatcher() *hostMatcher {
+func newHostMatcher(enableAutoOptions bool) *hostMatcher {
 	cfg := &matcher.Config{
 		ParamChar:    '$',
 		WildcardChar: '*',
 		Separators:   ".:",
 		New: func() matcher.Store {
 			return &hostStore{
-				rm: newPathMatcher(),
+				rm: newPathMatcher(enableAutoOptions),
 			}
 		},
 		ParamTransformer: newHostParamTransformer(),
 	}
 	return &hostMatcher{
 		matcher:   matcher.Custom(cfg),
-		defaultRM: newPathMatcher(),
+		defaultRM: newPathMatcher(enableAutoOptions),
 	}
 }
 

@@ -541,6 +541,35 @@ func TestAutomaticOptions(t *testing.T) {
 	test.Options("/api").Do().
 		ExpectStatus(http.StatusFound).
 		ExpectHeader("Batman", "Robin")
+
+	l = New()
+	l.Configure(WithAutmaticOptions(false))
+	l.Post("/api", fakeHandler())
+	l.Put("/api", fakeHandler())
+	l.Patch("/api", fakeHandler())
+	l.Trace("/api", fakeHandler())
+
+	test = htest.New(t, l)
+	test.Options("/api").Do().
+		ExpectStatus(http.StatusNotFound).
+		ExpectHeader("Accept", "")
+
+	test.Get("/api").Do().
+		ExpectStatus(http.StatusNotFound).
+		ExpectHeader("Accept", "")
+
+	test.Options("/404").Do().
+		ExpectStatus(http.StatusNotFound).
+		ExpectHeader("Accept", "")
+
+	// Allow custom options handler
+	l.Options("/api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Batman", "Robin")
+		w.WriteHeader(http.StatusFound)
+	}))
+	test.Options("/api").Do().
+		ExpectStatus(http.StatusFound).
+		ExpectHeader("Batman", "Robin")
 }
 
 func TestValidation(t *testing.T) {

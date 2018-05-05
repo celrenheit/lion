@@ -50,7 +50,6 @@ type Router struct {
 func New(mws ...Middleware) *Router {
 	r := &Router{
 		parent:           nil,
-		hostrm:           newHostMatcher(),
 		middlewares:      Middlewares{},
 		namedMiddlewares: make(map[string]Middlewares),
 		pool:             newCtxPool(),
@@ -62,6 +61,7 @@ func New(mws ...Middleware) *Router {
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		}),
+		WithAutmaticOptions(true),
 	)
 	return r
 }
@@ -595,6 +595,15 @@ func WithServer(server *http.Server) RouterOption {
 func WithNotFoundHandler(h http.Handler) RouterOption {
 	return func(router *Router) {
 		router.notFoundHandler = h
+	}
+}
+
+// WithAutmaticOptions allows to enable/disable automatic options
+// This MUST be called before anything else (right after New())
+// By default, it is set to true.
+func WithAutmaticOptions(enable bool) RouterOption {
+	return func(router *Router) {
+		router.hostrm = newHostMatcher(enable)
 	}
 }
 

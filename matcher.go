@@ -22,9 +22,10 @@ var _ registerMatcher = (*pathMatcher)(nil)
 
 type pathMatcher struct {
 	matcher matcher.Matcher
+	cfg     *matcher.Config
 }
 
-func newPathMatcher() *pathMatcher {
+func newPathMatcher(enableAutoOptions bool) *pathMatcher {
 	cfg := &matcher.Config{
 		ParamChar:    ':',
 		WildcardChar: '*',
@@ -32,10 +33,11 @@ func newPathMatcher() *pathMatcher {
 		New: func() matcher.Store {
 			return &route{}
 		},
+		EnableAutomaticOptions: enableAutoOptions,
 	}
-
 	r := &pathMatcher{
 		matcher: matcher.Custom(cfg),
+		cfg:     cfg,
 	}
 	return r
 }
@@ -71,7 +73,6 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 	}
 
 	if err == matcher.ErrTagsNotAllowed {
-
 		// Automatic OPTIONS
 		if r.Method == OPTIONS {
 			hh := d.automaticOptionsHandler(c, p)
@@ -82,6 +83,10 @@ func (d *pathMatcher) Match(c *ctx, r *http.Request) (*ctx, http.Handler) {
 		return c, wrap(func(c Context) {
 			c.Error(ErrorMethodNotAllowed)
 		})
+	}
+
+	if h == nil {
+		return c, nil
 	}
 
 	return c, h.(http.Handler)

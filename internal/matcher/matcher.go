@@ -33,6 +33,8 @@ type Config struct {
 	Separators       string
 	ParamTransformer ParamTransformer
 	New              func() Store
+
+	EnableAutomaticOptions bool
 }
 
 type matcher struct {

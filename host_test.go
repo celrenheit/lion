@@ -9,7 +9,7 @@ import (
 )
 
 func TestHostMatcher(t *testing.T) {
-	hm := newHostMatcher()
+	hm := newHostMatcher(false)
 
 	staticH := fakeHandler()
 	demoH := fakeHandler()
