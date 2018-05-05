@@ -319,6 +319,8 @@ func C(req *http.Request) Context {
 	c := req.Context()
 	if val := c.Value(ctxKey); val != nil {
 		if ctx, ok := val.(*ctx); ok {
+			ctx.parent = req.Context()
+			ctx.req = req
 			return ctx
 		}
 	}
