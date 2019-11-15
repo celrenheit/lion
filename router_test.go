@@ -597,6 +597,17 @@ func TestValidation(t *testing.T) {
 	}
 }
 
+func TestTrailingSlashWithWildcardShouldNotRedirect(t *testing.T) {
+	router := New()
+	router.Get("/a/:param", fakeHandler())
+	router.Get("/a/:param/*path", fakeHandler())
+	test := htest.New(t, router)
+
+	test.Get("/a/caca/").Do().
+		ExpectStatus(200).
+		ExpectHeader("Location", "")
+}
+
 func TestTrailingSlashRedirect(t *testing.T) {
 	router := New()
 	router.Get("/a", fakeHandler())

@@ -152,6 +152,11 @@ func (tree *tree) findNode(c Context, path string, tags Tags) (out *node, err er
 			search = search[p:]
 
 			if search == tree.MainSeparators() {
+				// here we only have a '/' left, so we check if we have a static child with a '/' label that have a wildcard child
+				if staticChild, ok := n.getStaticChild(tree.MainSeparators()[0]); ok && staticChild.anyChild != nil {
+					continue
+				}
+
 				err = ErrTSR
 				break
 			}
